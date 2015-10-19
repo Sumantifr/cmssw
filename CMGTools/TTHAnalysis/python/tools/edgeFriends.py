@@ -211,22 +211,23 @@ class edgeFriends:
         
         # compute the minimum mlb (or mlj) for the other lepton
         jetIsB = False
-        if ret['nPairLep'] < 2: continue 
+        for lepton in leplist: 
+            if ret['nPairLep'] < 2: continue 
             for j in jetsc+jetsd: 
-            if not j._clean: continue
-            if j == _jind: continue
-            jet.SetPtEtaPhiM(j.pt, j.eta, j.phi, j.mass)           
-            tmp = ( (l1 if _lind == 1 else l2) +jet).M()
-            if j.btagCSV>0.814:  
-                if tmp < max_mlb: 
+                if not j._clean: continue
+                if j == _jind: continue
+                jet.SetPtEtaPhiM(j.pt, j.eta, j.phi, j.mass)           
+                tmp = ( (l1 if _lind == 1 else l2) +jet).M()
+                if j.btagCSV>0.814:  
+                    if tmp < max_mlb: 
                         max_mlb  = tmp
                         jetIsB = True
-            else:
-                if tmp < max_mlb and jetIsB == False:
-                    max_mlb = tmp   
+                else:
+                    if tmp < max_mlb and jetIsB == False:
+                        max_mlb = tmp   
         ret["min_mlb1"] = min_mlb if min_mlb < 1e6  else -1.
         ret["min_mlb2"] = max_mlb if max_mlb < 1e6  else -1.
-       
+        
         fullret = {}
         for k,v in ret.iteritems(): 
             fullret[k+self.label] = v
