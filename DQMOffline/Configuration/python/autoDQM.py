@@ -5,8 +5,7 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
             'muon': ['DQMOfflineMuon',
                      'DQMHarvestMuon+DQMCertMuon'],
             'muon_miniAOD': ['DQMOfflineMuon_miniAOD',
-#                             'DQMHarvestMuon_miniAOD+DQMCertMuon'],
-                             'DQMHarvestMuon+DQMCertMuon'],
+                             'DQMHarvestMuon_miniAOD+DQMCertMuon'],
             'hcal':     ['DQMOfflineHcal',
                          'DQMHarvestHcal+DQMCertHcal'],
             'jetmet':  ['DQMOfflineJetMET',
@@ -26,8 +25,6 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
             'miniAODDQM': ['DQMOfflineMiniAOD',
                         'DQMHarvestMiniAOD'],
             'standardDQM': ['DQMOffline',
-                            'dqmHarvesting'],
-            'sergio':['muonMiniAOD',
-                      'dqmHarvesting']
+                            'dqmHarvesting']
             }
 

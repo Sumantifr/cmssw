@@ -123,11 +123,12 @@ DQMOfflineEGamma = cms.Sequence( egammaDQMOffline )
 
 DQMOfflineBTag = cms.Sequence( bTagPlotsDATA )
 
-                                                                 
-DQMOfflineMiniAOD = cms.Sequence( miniAODDQMSequence*muonMonitors_miniAOD )
+from DQMOffline.Muon.miniAOD_cff import *                                                                 
+
+muonMiniAOD = cms.Sequence( MuonMiniAOD )
+DQMOfflineMiniAOD = cms.Sequence( miniAODDQMSequence*muonMonitors_miniAOD*muonMiniAOD )
 
 #DQMOfflineNoHWW = cms.Sequence(DQMOffline)
 #DQMOfflineNoHWW.remove(hwwAnalyzer)
-from DQMOffline.Muon.miniAOD_cff import *
 
-muonMiniAOD = cms.Sequence( MuonMiniAOD )
+
