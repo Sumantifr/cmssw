@@ -18,8 +18,8 @@ class edgeFriends:
                  ("nJet35"+label, "I"), ("htJet35j"+label), ("nBJetLoose35"+label, "I"), ("nBJetMedium35"+label, "I"), 
                  ("iL1T"+label, "I"), ("iL2T"+label, "I"), 
                  ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"),
-                 ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"),
-                 ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"),
+                 ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
+                 ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
                  ("PileupW"+label, "F")
                  ]
         ## for lfloat in 'pt eta phi miniRelIso pdgId'.split():
@@ -35,6 +35,7 @@ class edgeFriends:
             biglist.append( ("JetSel"+label+"_mcMatchId","I",20,"nJetSel"+label) )
         return biglist
     def __call__(self,event):
+        gentaus  = [t for t in Collection(event,"genTau","ngenTau")]
         leps  = [l for l in Collection(event,"LepGood","nLepGood")]
         lepso = [l for l in Collection(event,"LepOther","nLepOther")]
         jetsc = [j for j in Collection(event,"Jet","nJet")]
@@ -116,8 +117,14 @@ class edgeFriends:
                 lep = leps[idx] if idx >= 0 else lepso[-1-idx]
                 #for lfloat in 'pt eta phi miniRelIso pdgId'.split():
                 #    lepret[lfloat].append( getattr(lep,lfloat) )
+                minDRTau = 99.
+                for tau in gentaus:
+                    tmp_dr = deltaR(lep, tau)
+                    if tmp_dr < minDRTau:
+                        minDRTau = tmp_dr
                 for lfloat in 'pt eta phi miniRelIso pdgId mvaIdSpring15'.split():
                     lepret["Lep"+str(lcount)+"_"+lfloat+self.label] = getattr(lep,lfloat)
+                lepret["Lep"+str(lcount)+"_"+"minTauDR"+self.label] = minDRTau
                 lcount += 1
                 #print 'good lepton', getattr(lep,'pt'), getattr(lep,'eta'), getattr(lep,'phi'), getattr(lep,'pdgId')
         else:
