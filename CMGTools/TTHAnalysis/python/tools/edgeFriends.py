@@ -1,12 +1,12 @@
 from CMGTools.TTHAnalysis.treeReAnalyzer import *
 
 class edgeFriends:
-    def __init__(self,label,tightLeptonSel,cleanJet,isMC=True):
+    def __init__(self,label,tightLeptonSel,cleanJet,isMC=False):
         self.label = "" if (label in ["",None]) else ("_"+label)
         self.tightLeptonSel = tightLeptonSel
         self.cleanJet = cleanJet
         self.isMC = isMC
-        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVince.txt","r")
+        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
         self.pu_dict = eval(self.puFile.read())
         self.puFile.close()
     def listBranches(self):
@@ -17,12 +17,12 @@ class edgeFriends:
                  ("nLepGood20"+label, "I"), ("nLepGood20T"+label, "I"),
                  ("nJet35"+label, "I"), ("htJet35j"+label), ("nBJetLoose35"+label, "I"), ("nBJetMedium35"+label, "I"), 
                  ("iL1T"+label, "I"), ("iL2T"+label, "I"), 
-                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"), 
+                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"),
+                 ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
+                 ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
                  ("PileupW"+label, "F"),
                  ("min_mlb1"+label, "F"),
                  ("min_mlb2"+label, "F"),
-                 ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"),
-                 ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F")
                  ]
         ## for lfloat in 'pt eta phi miniRelIso pdgId'.split():
         ##     if lfloat == 'pdgId':
@@ -42,6 +42,8 @@ class edgeFriends:
         jetsc = [j for j in Collection(event,"Jet","nJet")]
         jetsd = [j for j in Collection(event,"DiscJet","nDiscJet")]
         (met, metphi)  = event.met_pt, event.met_phi
+        if self.isMC:
+            gentaus  = [t for t in Collection(event,"genTau","ngenTau")]
         ##ntrue = event.nTrueInt
         nvtx = event.nVert
         metp4 = ROOT.TLorentzVector()
@@ -123,8 +125,15 @@ class edgeFriends:
                 lep = leps[idx] if idx >= 0 else lepso[-1-idx]
                 #for lfloat in 'pt eta phi miniRelIso pdgId'.split():
                 #    lepret[lfloat].append( getattr(lep,lfloat) )
+                minDRTau = 99.
+                if self.isMC:
+                    for tau in gentaus:
+                        tmp_dr = deltaR(lep, tau)
+                        if tmp_dr < minDRTau:
+                            minDRTau = tmp_dr
                 for lfloat in 'pt eta phi miniRelIso pdgId mvaIdSpring15'.split():
                     lepret["Lep"+str(lcount)+"_"+lfloat+self.label] = getattr(lep,lfloat)
+                lepret["Lep"+str(lcount)+"_"+"minTauDR"+self.label] = minDRTau
                 ltlvs[lcount-1].SetPtEtaPhiM(lep.pt, lep.eta, lep.phi, 0.0005 if lep.pdgId == 11 else 0.106)
                 lcount += 1
                 #print 'good lepton', getattr(lep,'pt'), getattr(lep,'eta'), getattr(lep,'phi'), getattr(lep,'pdgId') 
@@ -181,7 +190,7 @@ class edgeFriends:
             if not j._clean: continue
             ret["nJet35"] += 1; ret["htJet35j"] += j.pt; 
             if j.btagCSV>0.423: ret["nBJetLoose35"] += 1
-            if j.btagCSV>0.814: ret["nBJetMedium35"] += 1
+            if j.btagCSV>0.890: ret["nBJetMedium35"] += 1
         ## compute mlb for the two lepton  
 	
         jet = ROOT.TLorentzVector()
