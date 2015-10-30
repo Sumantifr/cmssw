@@ -118,4 +118,4 @@ DQMHarvestBTag = cms.Sequence( bTagCollectorSequenceDATA )
 
 HLTMonitoringClient = cms.Sequence()
 
-DQMHarvestMiniAOD = cms.Sequence( dataCertificationJetMETSequence )
+DQMHarvestMiniAOD = cms.Sequence( dataCertificationJetMETSequence * muonQualityTests_miniAOD)
