@@ -266,14 +266,14 @@ preprocessor = None
 ##########################################################
 selectedComponents = [] 
 
-selectedComponents = [ TTLep_pow]
+selectedComponents = [DYJetsToLL_M50]
 
 
 for comp in selectedComponents:
-    comp.splitFactor = 500
+    comp.splitFactor = 100
     comp.finesplitFactor = 4
 
-runData = True
+runData = False
 if runData:
     ## # Run2015C, 25 ns, 3.8T
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
@@ -323,6 +323,8 @@ if runData:
 from PhysicsTools.HeppyCore.framework.heppy_loop import getHeppyOption
 test = getHeppyOption('test')
 #test = '74X-MC'
+
+test= '74X-MC'
 if test == 'synch':
     print 'I\'m in the synch test thing here!!'
     comp = TTLep_pow
@@ -335,27 +337,10 @@ if test == 'synch':
     #comp.finesplitFactor = 4
 elif test == '74X-MC':
     #what = getHeppyOption("sample")
-    what = 'TT'
-    if what == "TTLep":
-        selectedComponents = [ TTLep_pow ]
-        comp = selectedComponents[0]
-        comp.files = [ '/store/mc/RunIISpring15DR74/TTTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/50000/0C1B984D-F408-E511-872E-0002C90B7F2E.root' ]
-        tmpfil = os.path.expandvars("/tmp/$USER/0C1B984D-F408-E511-872E-0002C90B7F2E.root")
-        if not os.path.exists(tmpfil):
-            os.system("xrdcp root://eoscms//eos/cms%s %s" % (comp.files[0],tmpfil))
-        comp.files = [ tmpfil ]
-    elif what == "TT":
-        ttHLepSkim.minLeptons = 0
-        selectedComponents = [ TT_bx25 ]
-    elif what == "Z":
-        selectedComponents = [ ZEE_bx25, ZMM_bx25, ZTT_bx25 ]
-    else:
-        selectedComponents = RelVals740
-    if not getHeppyOption("all"):
-        for comp in selectedComponents:
-            comp.files = comp.files[:1]
-            comp.splitFactor = 1
-            comp.fineSplitFactor = 1 if getHeppyOption("single") else 4
+    selectedComponents = [ DYJetsToLL_M50]
+    for comp in selectedComponents:
+        comp.splitFactor = 100
+        comp.fineSplitFactor = 4 
 elif test == '74X-Data':
     #selectedComponents = [DoubleMuon_Run2015B, MuonEG_Run2015B, DoubleEG_Run2015B, JetHT_Run2015B, HTMHT_Run2015B]
     selectedComponents = [JetHT_Run2015B]#, HTMHT_Run2015B]
