@@ -85,7 +85,7 @@ void DiMuonHistograms::bookHistograms(DQMStore::IBooker & ibooker,
     TightTightMuon.push_back(ibooker.book1D("TightTightMuon"+EtaName,"InvMass_{Tight,Tight}"+EtaName,nBin, 55.0, 125.0));
 
     // low-mass resonances
-    SoftSoftMuon.push_back(ibooker.book1D("SoftSoftMuon"+EtaName,"InvMass_{Soft,Soft}"+EtaName,nBin, 5.0, 55.0));
+    SoftSoftMuon.push_back(ibooker.book1D("SoftSoftMuon"+EtaName,"InvMass_{Soft,Soft}"+EtaName,nBin, 0.0, 55.0));
   }
 }
 
