@@ -42,7 +42,7 @@ lepAna.doMiniIsolation = True
 lepAna.packedCandidates = 'packedPFCandidates'
 lepAna.miniIsolationPUCorr = 'rhoArea'
 lepAna.miniIsolationVetoLeptons = None # use 'inclusive' to veto inclusive leptons and their footprint in all isolation cones
-lepAna.loose_electron_id  = "POG_MVA_ID_Run2_NonTrig_VLoose"
+lepAna.loose_electron_id  = "POG_MVA_ID_Phys14_NonTrig_VLoose"
 lepAna.loose_muon_id      = "POG_ID_Loose"
 lepAna.loose_electron_eta = 2.5
 lepAna.loose_electron_pt  = 15
@@ -225,10 +225,10 @@ triggerFlagsAna.triggerBits = {
     'pfht200' : triggers_pfht200,
     'pfht250' : triggers_pfht250,
     'pfht300' : triggers_pfht300,
-    'pfht350' : triggers_ht350,
+    'pfht350' : triggers_HT350,
     'pfht400' : triggers_pfht400,
-    'pfht475' : triggers_ht475,
-    'pfht600' : triggers_ht600,
+    'pfht475' : triggers_HT475,
+    'pfht600' : triggers_HT600,
     'pfht800' : triggers_HT800,
     'pfht900' : triggers_HT900,
     'at57' : triggers_at57,
@@ -245,7 +245,7 @@ triggerFlagsAna.triggerBits = {
     'MuEGHT'     : triggers_mue_ht,
     'SingleMu' : triggers_1mu_iso,
     'SingleEl' : triggers_FR_1e_iso,
-    'HTMET' : triggers_HTMET120,
+    'HTMET' : triggers_HT350_MET120,
     'HTJet' : triggers_htjet,
 }
 
