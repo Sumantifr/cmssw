@@ -290,12 +290,16 @@ if runData:
     ## processing = "Run2015C-05Oct2015-v1"; short = "Run2015C_miniAODv2"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False; triggerFlagsAna.checkL1Prescale = False;
 
     # Run2015D, 25 ns, 3.8 T re-miniAOD
+    processing = "Run2015C_25ns-05Oct2015-v1"; short = "Run2015C_25ns_05Oct_v1"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False
+    processing2 = "Run2015C_25ns-05Oct2015-v1"; short2 = "Run2015C_25ns_05Oct_v1"
+
+    # Run2015D, 25 ns, 3.8 T re-miniAOD
     ##processing = "Run2015D-05Oct2015-v1"; short = "Run2015D_05Oct_v1"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False
     ##processing2 = "Run2015D-05Oct2015-v2"; short2 = "Run2015D_05Oct_v2"
 
     # Run2015D, prompt-v4
-    processing = "Run2015D-PromptReco-v4"; short = "Run2015D_v4"; run_ranges = [ (246908,258751) ]; useAAA=False; is50ns=False
-    processing2 = "Run2015D-PromptReco-v4"; short2 = "Run2015D_v4"; 
+    ## processing = "Run2015D-PromptReco-v4"; short = "Run2015D_v4"; run_ranges = [ (246908,258751) ]; useAAA=False; is50ns=False
+    ## processing2 = "Run2015D-PromptReco-v4"; short2 = "Run2015D_v4"; 
 
     compSelection = ""; compVeto = ""
     DatasetsAndTriggers = []
