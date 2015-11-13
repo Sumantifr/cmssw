@@ -9,6 +9,12 @@ class edgeFriends:
         self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
         self.pu_dict = eval(self.puFile.read())
         self.puFile.close()
+        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
+        if not self.isMC:
+            self.beamHaloSet = set()
+            for i in list(self.beamHaloListFile):
+                self.beamHaloSet.add(i.rstrip('\n'))
+        self.beamHaloListFile.close()
     def listBranches(self):
         label = self.label
         biglist = [ ("nLepTight"+label, "I"), ("nJetSel"+label, "I"), ("nPairLep"+label, "I"),
@@ -236,6 +242,15 @@ class edgeFriends:
                         max_mlb = tmp   
         ret["min_mlb1"] = min_mlb if min_mlb < 1e6  else -1.
         ret["min_mlb2"] = max_mlb if max_mlb < 1e6  else -1.
+
+        ## beam halo filter list file:
+        ## do this only for data
+        if not self.isMC:
+            evt_str = '%d:%d:%d'%(event.run, event.lumi, event.evt)
+            if evt_str in self.beamHaloSet:
+                ret['nPairLep'] = -1
+        ## ====== done with beam halo check
+        
         
         fullret = {}
         for k,v in ret.iteritems(): 
