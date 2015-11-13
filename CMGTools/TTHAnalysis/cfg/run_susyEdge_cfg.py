@@ -60,9 +60,13 @@ lepAna.loose_muon_dxy     = 0.15
 lepAna.loose_muon_dz      =  0.5
 
 
-jetAna.recalibrateJets = False
-jetAna.calculateSeparateCorrections = False
-metAna.recalibrate = False
+jetAna.recalibrateJets = True
+#jetAna.calculateSeparateCorrections = True
+jetAna.calculateType1METCorrection = True
+metAna.recalibrate = "type1"
+
+jetAna.mcGT     = "Summer15_25nsV6_MC"
+jetAna.dataGT   = "Summer15_25nsV6_DATA"
 
 ##########################################################
 ######################Isolation###########################
@@ -284,28 +288,37 @@ if runData:
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258159_13TeV_PromptReco_Collisions15_25ns_JSON_v3.txt"
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258714_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
-    json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258750_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
+    ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258750_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
+
+    ## this is the JSON for the full dataset of the year 2015. 2.11 inverse femtobarns
+    json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-260627_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
 
     ## # Run2015C, 25 ns, 3.8T
-    ## processing = "Run2015C-05Oct2015-v1"; short = "Run2015C_miniAODv2"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False; triggerFlagsAna.checkL1Prescale = False;
+    ## processing = "Run2015C-05Oct2015-v1"; short = "Run2015C_miniAODv2"; run_ranges = [ (246908,260627) ]; useAAA=False; is50ns=False; triggerFlagsAna.checkL1Prescale = False;
 
     # Run2015D, 25 ns, 3.8 T re-miniAOD
-    processing = "Run2015C_25ns-05Oct2015-v1"; short = "Run2015C_25ns_05Oct_v1"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False
-    processing2 = "Run2015C_25ns-05Oct2015-v1"; short2 = "Run2015C_25ns_05Oct_v1"
+    # processing = "Run2015C_25ns-05Oct2015-v1"; short = "Run2015C_25ns_05Oct_v1"; run_ranges = [ (246908,260627) ]; useAAA=False; is50ns=False
+    # processing2 = "Run2015C_25ns-05Oct2015-v1"; short2 = "Run2015C_25ns_05Oct_v1"
 
     # Run2015D, 25 ns, 3.8 T re-miniAOD
-    ##processing = "Run2015D-05Oct2015-v1"; short = "Run2015D_05Oct_v1"; run_ranges = [ (246908,258714) ]; useAAA=False; is50ns=False
+    ##processing = "Run2015D-05Oct2015-v1"; short = "Run2015D_05Oct_v1"; run_ranges = [ (246908,260627) ]; useAAA=False; is50ns=False
     ##processing2 = "Run2015D-05Oct2015-v2"; short2 = "Run2015D_05Oct_v2"
 
     # Run2015D, prompt-v4
-    ## processing = "Run2015D-PromptReco-v4"; short = "Run2015D_v4"; run_ranges = [ (246908,258751) ]; useAAA=False; is50ns=False
+    ## processing = "Run2015D-PromptReco-v4"; short = "Run2015D_v4"; run_ranges = [ (246908,260627) ]; useAAA=False; is50ns=False
     ## processing2 = "Run2015D-PromptReco-v4"; short2 = "Run2015D_v4"; 
 
     compSelection = ""; compVeto = ""
     DatasetsAndTriggers = []
     selectedComponents = []; vetos = []  
+
+    useAAA = False
+    is50ns = False
+    processings = ["Run2015C_25ns-05Oct2015-v1", "Run2015D-05Oct2015-v1", "Run2015D-PromptReco-v4"]
+    shorts      = ["Run2015C_25ns-05Oct_v1"    , "Run2015D-05Oct_v1"    , "Run2015D_v4"]
+    run_ranges  = [ (246908,260627) ]
  
-    hadtriggers = triggers_pfht200 + triggers_pfht250 + triggers_pfht300 + triggers_ht350 + triggers_pfht400 + triggers_ht475 + triggers_ht600 + triggers_HT800 + triggers_HT900 + triggers_at57 + triggers_at55 + triggers_at53 + triggers_at52 + triggers_at51
+    ## hadtriggers = triggers_pfht200 + triggers_pfht250 + triggers_pfht300 + triggers_ht350 + triggers_pfht400 + triggers_ht475 + triggers_ht600 + triggers_HT800 + triggers_HT900 + triggers_at57 + triggers_at55 + triggers_at53 + triggers_at52 + triggers_at51
     ## DatasetsAndTriggers.append( ("DoubleMuon", triggers_mu17mu8 + triggers_mu17mu8_dz + triggers_mu17tkmu8_dz + triggers_mumu_noniso_50ns) )
     ## DatasetsAndTriggers.append( ("DoubleEG",   triggers_el17el12_dz + triggers_el23el12_dz + triggers_doubleele33) )
     ## DatasetsAndTriggers.append( ("MuonEG",     triggers_mu8el17 + triggers_mu8el23 + triggers_mu17el12 + triggers_mu30ele30) )
@@ -318,32 +331,41 @@ if runData:
     DatasetsAndTriggers.append( ("HTMHT", []) )
 
     for pd,triggers in DatasetsAndTriggers:
-        short_use = short2 if pd == "MuonEG" else short
-        processing_use = processing2 if pd == "MuonEG" else processing
-        #if pd == "MuonEG": processing = processing.replace("v1", "v2")
-        for run_range in run_ranges:
-            label = "runs_%d_%d" % run_range if run_range[0] != run_range[1] else "run_%d" % (run_range[0],)
-            compname = pd+"_"+short_use+"_"+label
-            ## if ((compSelection and not re.search(compSelection, compname)) or
-            ##     (compVeto      and     re.search(compVeto,      compname))):
-            ##         print "Will skip %s" % (compname)
-            ##         continue
-            comp = kreator.makeDataComponent(compname, 
-                                             "/"+pd+"/"+(processing2 if pd == "MuonEG" else processing) +"/MINIAOD", 
-                                             "CMS", ".*root", 
-                                             json=json, 
-                                             run_range=run_range, 
-                                             #triggers=triggers[:], vetoTriggers = vetos[:],
-                                             triggers=[], vetoTriggers = vetos[:],
-                                             useAAA=useAAA)
-            print "Will process %s (%d files)" % (comp.name, len(comp.files))
-#            print "\ttrigger sel %s, veto %s" % (triggers, vetos)
-            comp.splitFactor = len(comp.files)/2
-            comp.fineSplitFactor = 1
-            selectedComponents.append( comp )
-        #vetos += triggers
+        for pro in processings:
+            i = processings.index(pro)
+            short_use = shorts[i]
+            if pro == "Run2015D-05Oct2015-v1" and pd == 'MuonEG':
+                pro = pro.replace('v1','v2')
+                short_use = short_use.replace('v1', 'v2')
+            ## short_use = short2 if pd == "MuonEG" else short
+            ## processing_use = processing2 if pd == "MuonEG" else processing
+            #if pd == "MuonEG": processing = processing.replace("v1", "v2")
+            for run_range in run_ranges:
+                label = "runs_%d_%d" % run_range if run_range[0] != run_range[1] else "run_%d" % (run_range[0],)
+                compname = pd+"_"+short_use+"_"+label
+                ## if ((compSelection and not re.search(compSelection, compname)) or
+                ##     (compVeto      and     re.search(compVeto,      compname))):
+                ##         print "Will skip %s" % (compname)
+                ##         continue
+                print 'looking for dataset', "/"+pd+"/"+(pro) +"/MINIAOD"
+                print 'using short', compname
+                comp = kreator.makeDataComponent(compname, 
+                                                 "/"+pd+"/"+(pro) +"/MINIAOD", 
+                                                 "CMS", ".*root", 
+                                                 json=json, 
+                                                 run_range=run_range, 
+                                                 #triggers=triggers[:], vetoTriggers = vetos[:],
+                                                 triggers=[], vetoTriggers = vetos[:],
+                                                 useAAA=useAAA)
+                print "Will process %s (%d files)" % (comp.name, len(comp.files))
+#                print "\ttrigger sel %s, veto %s" % (triggers, vetos)
+                comp.splitFactor = len(comp.files)/3
+                comp.fineSplitFactor = 1
+                selectedComponents.append( comp )
+            #vetos += triggers
     if json is None:
         susyCoreSequence.remove(jsonAna)
+
 
 from PhysicsTools.HeppyCore.framework.heppy_loop import getHeppyOption
 test = getHeppyOption('test')
