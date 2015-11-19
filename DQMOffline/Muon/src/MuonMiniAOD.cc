@@ -34,31 +34,7 @@ void MuonMiniAOD::bookHistograms(DQMStore::IBooker & ibooker,
   ibooker.cd();
   ibooker.setCurrentFolder("Muons_miniAOD/MuonMiniAOD");
   
-  // tightMuons = ibooker.book1D("tightMuons","Tight Muons",2,1,3);
-  // tightMuons -> setBinLabel(1,"OK");
-  // tightMuons -> setBinLabel(2,"No OK");
 
-  // mediumMuons = ibooker.book1D("mediumMuons","Medium Muons",2,1,3);
-  // mediumMuons -> setBinLabel(1,"OK");
-  // mediumMuons -> setBinLabel(2,"No OK");
-
-  // looseMuons = ibooker.book1D("looseMuons","Loose Muons",2,1,3);
-  // looseMuons -> setBinLabel(1,"OK");
-  // looseMuons -> setBinLabel(2,"No OK");
-
-  // softMuons = ibooker.book1D("softMuons","Soft Muons",2,1,3);
-  // softMuons -> setBinLabel(1,"OK");
-  // softMuons -> setBinLabel(2,"No OK");
-
-  // highPtMuons = ibooker.book1D("highPtMuons","High Pt Muons",2,1,3);
-  // highPtMuons -> setBinLabel(1,"OK");
-  // highPtMuons -> setBinLabel(2,"No OK");
-
-  // highPtMuons =  ibooker.book2D("highPtMuons","High Pt Muons",2,1,3,2,1,3);
-  // highPtMuons -> setBinLabel(1,"Pass",1);
-  // highPtMuons -> setBinLabel(2,"No Pass",1);
-  // highPtMuons -> setBinLabel(1,"Pass",2);
-  // highPtMuons -> setBinLabel(2,"No Pass",2);
   workingPoints.push_back(ibooker.book2D("tightMuons" ,"Tight Muons"  ,2,1,3,2,1,3));
   workingPoints.push_back(ibooker.book2D("mediumMuons","Medium Muons" ,2,1,3,2,1,3));
   workingPoints.push_back(ibooker.book2D("looseMuons" ,"Loose Muons"  ,2,1,3,2,1,3));
@@ -180,39 +156,6 @@ void MuonMiniAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
       (*monitor)->Fill(Pass_A,Pass_B);
     }
-    // if (muon::isTightMuon(*muon1,thePrimaryVertex) == muon1->isTightMuon(thePrimaryVertex))
-    //   tightMuons->Fill(1);
-    // else
-    //   tightMuons->Fill(2);
-  
-    // if (muon::isMediumMuon(*muon1) == muon1->isMediumMuon())
-    //   mediumMuons->Fill(1);
-    // else
-    //   mediumMuons->Fill(2);
 
-    // if (muon::isLooseMuon(*muon1) == muon1->isLooseMuon())
-    //   looseMuons->Fill(1);
-    // else
-    //   looseMuons->Fill(2);
-    
-    // if (muon::isSoftMuon(*muon1,thePrimaryVertex) == muon1->isSoftMuon(thePrimaryVertex))
-    //   softMuons->Fill(1);
-    // else
-    //   softMuons->Fill(2);
-    
-    // if (muon::isHighPtMuon(*muon1,thePrimaryVertex) == muon1->isHighPtMuon(thePrimaryVertex))
-    //   highPtMuons->Fill(1);
-    // else
-    //   highPtMuons->Fill(2);
-    
-    // for (edm::View<pat::Muon>::const_iterator muon2 = muon1; muon2 != muons->end(); ++muon2){
-    //   if (muon1->isTightMuon(thePrimaryVertex) && muon2->isTightMuon(thePrimaryVertex)){
-    // 	reco::TrackRef recoCombinedGlbTrack1A = muon1->combinedMuon();
-    // 	reco::TrackRef recoCombinedGlbTrack2A = muon2->combinedMuon();
-    // 	reco::TrackRef recoCombinedGlbTrack1B = muon::combinedMuon(*muon1);
-    // 	reco::TrackRef recoCombinedGlbTrack2B = muon::combinedMuon(*muon2);
-
-    //   }
-    // }
   }
 }
