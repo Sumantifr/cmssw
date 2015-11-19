@@ -50,18 +50,19 @@ class MuonMiniAOD : public DQMEDAnalyzer {
   std::string metname;
     
   // Monitors:
-  MonitorElement* tightMuons;
-  MonitorElement* mediumMuons;
-  MonitorElement* looseMuons;
-  MonitorElement* softMuons;
-  MonitorElement* highPtMuons;
+  std::vector<MonitorElement*> workingPoints;
+  /* MonitorElement* mediumMuons; */
+  /* MonitorElement* looseMuons; */
+  /* MonitorElement* softMuons; */
+  /* MonitorElement* highPtMuons; */
 
   //Vertex requirements
   bool doPVCheck_;
   edm::EDGetTokenT<reco::VertexCollection> theVertexLabel_;
   edm::EDGetTokenT<reco::BeamSpot>         theBeamSpotLabel_;
 
-
+  bool PassesCut_A(edm::View<pat::Muon>::const_iterator,reco::Vertex,TString);
+  bool PassesCut_B(edm::View<pat::Muon>::const_iterator,reco::Vertex,TString);
 
 };
 #endif
