@@ -1,15 +1,17 @@
 from CMGTools.TTHAnalysis.treeReAnalyzer import *
 
 class edgeFriends:
-    def __init__(self,label,tightLeptonSel,cleanJet,isMC=False):
+    def __init__(self,label,tightLeptonSel,cleanJet,isMC=True):
         self.label = "" if (label in ["",None]) else ("_"+label)
         self.tightLeptonSel = tightLeptonSel
         self.cleanJet = cleanJet
         self.isMC = isMC
-        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
+        ## with nvtx self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
+        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsOfficialPrescription.txt","r")
         self.pu_dict = eval(self.puFile.read())
         self.puFile.close()
-        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
+        ## for 1.3 fb-1 self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
+        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/fullDataset/allFullData.txt","r")
         if not self.isMC:
             self.beamHaloSet = set()
             for i in list(self.beamHaloListFile):
@@ -26,9 +28,8 @@ class edgeFriends:
                  ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"),
                  ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
                  ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
-                 ("PileupW"+label, "F"),
-                 ("min_mlb1"+label, "F"),
-                 ("min_mlb2"+label, "F"),
+                 ("PileupW"+label, "F"), ("min_mlb1"+label, "F"), ("min_mlb2"+label, "F"),
+                 ("srID"+label, "I")
                  ]
         ## for lfloat in 'pt eta phi miniRelIso pdgId'.split():
         ##     if lfloat == 'pdgId':
@@ -50,8 +51,8 @@ class edgeFriends:
         (met, metphi)  = event.met_pt, event.met_phi
         if self.isMC:
             gentaus  = [t for t in Collection(event,"genTau","ngenTau")]
-        ##ntrue = event.nTrueInt
-        nvtx = event.nVert
+        ntrue = event.nTrueInt
+        ## nvtx = event.nVert
         metp4 = ROOT.TLorentzVector()
         metp4.SetPtEtaPhiM(met,0,metphi,0)
         ret = {}; jetret = {}; 
@@ -64,8 +65,8 @@ class edgeFriends:
         # ====================
         # do pileupReweighting
         # ====================
-        puWt = self.pu_dict[nvtx] if self.isMC else 1.
-        if puWt > 10: puWt = 10.
+        puWt = self.pu_dict[ntrue] if self.isMC else 1.
+        #if puWt > 10: puWt = 10.
         ret["PileupW"] = puWt
 
         # ===============================
@@ -197,6 +198,13 @@ class edgeFriends:
             ret["nJet35"] += 1; ret["htJet35j"] += j.pt; 
             if j.btagCSV>0.423: ret["nBJetLoose35"] += 1
             if j.btagCSV>0.890: ret["nBJetMedium35"] += 1
+
+        ## get the SR id which is 1xx for central and 2xx for forward. the 10 digit is the number of 
+        ## b-tags and the signle digit is the mll region going from 1-5
+
+        srID = self.getSRID(ret['lepsMll'], lepret["Lep1_eta"+self.label], lepret["Lep2_eta"+self.label], ret["nBJetMedium35"])
+        ret["srID"] = srID
+
         ## compute mlb for the two lepton  
 	
         jet = ROOT.TLorentzVector()
@@ -276,6 +284,25 @@ class edgeFriends:
             ret = (0, 1, mll, jzb, dr, metrec, zpt)
         return ret
 
+    def getSRID(self, mll, eta1, eta2, nb):
+        mllid, bid, etaid = -1, -1, -1
+        if    20. < mll <  70.:
+            mllid = 1
+        elif  70. < mll <  81.:
+            mllid = 2
+        elif  81. < mll < 101.:
+            mllid = 3
+        elif 101. < mll < 120.:
+            mllid = 4
+        elif 120. < mll:
+            mllid = 5
+            
+        if abs(eta1) < 1.4 and abs(eta2) < 1.4:
+            etaid = 1
+        else:
+            etaid = 2
+
+        return (100*etaid + 10*nb + mllid)
 
 def _susyEdge(lep):
         if lep.pt <= 10.: return False
