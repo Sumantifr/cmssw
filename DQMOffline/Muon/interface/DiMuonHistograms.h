@@ -81,12 +81,17 @@ class DiMuonHistograms : public DQMEDAnalyzer {
   std::vector<MonitorElement*> TightTightMuon;
   std::vector<MonitorElement*> SoftSoftMuon;
   
+  MonitorElement* test; // my test
+
   // Labels used
   edm::EDGetTokenT<edm::View<reco::Muon> >   theMuonCollectionLabel_;
   edm::EDGetTokenT<reco::VertexCollection> theVertexLabel_;
   edm::EDGetTokenT<reco::BeamSpot>         theBeamSpotLabel_;
 
   std::string theFolder;
+
+  int nTightTight;
+  int nGlbGlb;
 
 };
 #endif 
