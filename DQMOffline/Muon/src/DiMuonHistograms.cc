@@ -34,7 +34,10 @@ DiMuonHistograms::DiMuonHistograms(const edm::ParameterSet& pSet){
   // initialise parameters:
   parameters = pSet;
 
-  
+  // counter
+  nTightTight = 0;
+  nGlbGlb     = 0;
+
   // declare consumes:
   theMuonCollectionLabel_ = consumes<edm::View<reco::Muon> >  (parameters.getParameter<edm::InputTag>("MuonCollection"));
   theVertexLabel_          = consumes<reco::VertexCollection>(parameters.getParameter<edm::InputTag>("VertexLabel"));
@@ -68,6 +71,7 @@ void DiMuonHistograms::bookHistograms(DQMStore::IBooker & ibooker,
   ibooker.setCurrentFolder(theFolder);  
 
   int nBin = 0;
+  test = ibooker.book1D("test","InvMass_{Tight,Tight}",100, 0., 200.);
   for (unsigned int iEtaRegion=0; iEtaRegion<3; iEtaRegion++){
     if (iEtaRegion==0) { EtaName = "";         nBin = etaBin;} 
     if (iEtaRegion==1) { EtaName = "_Barrel";  nBin = etaBBin;}
@@ -138,6 +142,7 @@ void DiMuonHistograms::analyze(const edm::Event & iEvent,const edm::EventSetup& 
   float charge = 99.;
   float InvMass = -99.;
 
+
   for (edm::View<reco::Muon>::const_iterator muon1 = muons->begin(); muon1 != muons->end(); ++muon1){
     LogTrace(metname)<<"[DiMuonHistograms] loop over 1st muon"<<endl;
 
@@ -170,19 +175,20 @@ void DiMuonHistograms::analyze(const edm::Event & iEvent,const edm::EventSetup& 
 	  }
 	}
 	// Also Tight-Tight Muon Selection
-
 	if ( muon::isTightMuon(*muon1, vtx)  && 
 	     muon::isTightMuon(*muon2, vtx) ) { 
-  	  
+	  test->Fill(InvMass);
 	  LogTrace(metname)<<"[DiMuonHistograms] Tight-Tight pair"<<endl;
-	  for (unsigned int iEtaRegion=0; iEtaRegion<3; iEtaRegion++){
-	    if (iEtaRegion==0) {EtaCutMin= 0.;         EtaCutMax=2.4;       }
-	    if (iEtaRegion==1) {EtaCutMin= etaBMin;    EtaCutMax=etaBMax;   } 
-	    if (iEtaRegion==2) {EtaCutMin= etaECMin;   EtaCutMax=etaECMax;  }
-
-	    if(fabs(recoCombinedGlbTrack1->eta())>EtaCutMin && fabs(recoCombinedGlbTrack1->eta())<EtaCutMax && 
-	       fabs(recoCombinedGlbTrack2->eta())>EtaCutMin && fabs(recoCombinedGlbTrack2->eta())<EtaCutMax){
-	      if (InvMass > 55. && InvMass < 125.) TightTightMuon[iEtaRegion]->Fill(InvMass);
+	  if (charge < 0){
+	    for (unsigned int iEtaRegion=0; iEtaRegion<3; iEtaRegion++){
+	      if (iEtaRegion==0) {EtaCutMin= 0.;         EtaCutMax=2.4;       }
+	      if (iEtaRegion==1) {EtaCutMin= etaBMin;    EtaCutMax=etaBMax;   } 
+	      if (iEtaRegion==2) {EtaCutMin= etaECMin;   EtaCutMax=etaECMax;  }
+	      
+	      if(fabs(recoCombinedGlbTrack1->eta())>EtaCutMin && fabs(recoCombinedGlbTrack1->eta())<EtaCutMax && 
+		 fabs(recoCombinedGlbTrack2->eta())>EtaCutMin && fabs(recoCombinedGlbTrack2->eta())<EtaCutMax){
+		if (InvMass > 55. && InvMass < 125.) TightTightMuon[iEtaRegion]->Fill(InvMass);
+	      }
 	    }
 	  }
 	}
@@ -283,5 +289,7 @@ void DiMuonHistograms::analyze(const edm::Event & iEvent,const edm::EventSetup& 
       }
     } //muon2
   } //Muon1
+   
+
 }
 
