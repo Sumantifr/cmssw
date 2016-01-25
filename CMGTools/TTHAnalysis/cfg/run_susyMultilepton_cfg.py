@@ -17,6 +17,7 @@ is50ns = getHeppyOption("is50ns",False)
 runData = getHeppyOption("runData",False)
 runDataQCD = getHeppyOption("runDataQCD",False)
 runFRMC = getHeppyOption("runFRMC",False)
+runSMS = getHeppyOption("runSMS",False)
 scaleProdToLumi = float(getHeppyOption("scaleProdToLumi",-1)) # produce rough equivalent of X /pb for MC datasets
 SOS = getHeppyOption("SOS",False) ## switch True to overwrite settings for SOS skim (N.B. default settings are those from multilepton preselection)
 saveSuperClusterVariables = getHeppyOption("saveSuperClusterVariables",False)
@@ -226,18 +227,22 @@ treeProducer = cfg.Analyzer(
 )
 
 ## histo counter
-susyCoreSequence.insert(susyCoreSequence.index(skimAnalyzer),
-                        susyCounter)
+if not runSMS:
+    susyCoreSequence.insert(susyCoreSequence.index(skimAnalyzer),
+                            susyCounter)
+else:
+    susyCoreSequence.insert(susyCoreSequence.index(susyScanAna)+1,susyCounter)
 
 # HBHE new filter
 from CMGTools.TTHAnalysis.analyzers.hbheAnalyzer import hbheAnalyzer
 hbheAna = cfg.Analyzer(
     hbheAnalyzer, name="hbheAnalyzer", IgnoreTS4TS5ifJetInLowBVRegion=False
     )
-susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna),hbheAna)
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
+if not runSMS:
+    susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna),hbheAna)
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
 
 #additional MET quantities
 metAna.doTkMet = True
@@ -319,22 +324,18 @@ triggerFlagsAna.unrollbits = True
 triggerFlagsAna.saveIsUnprescaled = True
 triggerFlagsAna.checkL1Prescale = True
 
-from CMGTools.RootTools.samples.samples_13TeV_74X import *
+if runSMS:
+    susyCoreSequence.remove(triggerFlagsAna)
+    susyCoreSequence.remove(triggerAna)
+    susyCoreSequence.remove(eventFlagsAna)
+    ttHLepSkim.requireSameSignPair = True
+
+from CMGTools.RootTools.samples.samples_13TeV_RunIISpring15MiniAODv2 import *
 from CMGTools.RootTools.samples.samples_13TeV_74X_susySignalsPriv import *
 from CMGTools.RootTools.samples.samples_8TeVReReco_74X import *
 from CMGTools.RootTools.samples.samples_13TeV_DATA2015 import *
 
 selectedComponents = [];
-
-### 8TeV data 74X ReReco
-#selectedComponents = [ SingleMu_742, MuEG_742, DoubleMu_742 ] ; is50ns = True
-### 25 ns 74X MC samples
-#selectedComponents = [ TTJets, TTJets_LO, WJetsToLNu, DYJetsToLL_M10to50,  DYJetsToLL_M50,  ] + SingleTop + DiBosons + TTV + Higgs ; is50ns = False
-#selectedComponents = mcSamplesPriv ; is50ns = False
-### 50 ns 74X MC samples
-#selectedComponents = [ DYJetsToLL_M10to50_50ns, DYJetsToLL_M50_50ns, TBar_tWch_50ns, TTJets_LO_50ns, TToLeptons_tch_50ns, T_tWch_50ns, WJetsToLNu_50ns, WWTo2L2Nu_50ns, WZp8_50ns, ZZp8_50ns, TTJets_50ns ] ; is50ns = True
-#selectedComponents = [ TT_pow_50ns ] ; is50ns = True
-#selectedComponents = [ DYJetsToLL_LO_M50_50ns ] ; is50ns = True
 
 
 if scaleProdToLumi>0: # select only a subset of a sample, corresponding to a given luminosity (assuming ~30k events per MiniAOD file, which is ok for central production)
@@ -452,6 +453,14 @@ if is50ns:
     jetAna.dataGT   = "Summer15_50nsV5_DATA"
     pfChargedCHSjetAna.mcGT     = "Summer15_50nsV5_MC"
     pfChargedCHSjetAna.dataGT   = "Summer15_50nsV5_DATA"
+
+if runSMS:
+    jetAna.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAnaScaleUp.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAnaScaleDown.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAna.applyL2L3Residual = False
+    jetAnaScaleUp.applyL2L3Residual = False
+    jetAnaScaleDown.applyL2L3Residual = False
 
 if removeJetReCalibration:
     ## NOTE: jets will still be recalibrated, since calculateSeparateCorrections is True,

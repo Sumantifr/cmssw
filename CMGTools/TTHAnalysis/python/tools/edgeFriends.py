@@ -1,4 +1,5 @@
 from CMGTools.TTHAnalysis.treeReAnalyzer import *
+import copy
 
 class edgeFriends:
     def __init__(self,label,tightLeptonSel,cleanJet,isMC=False):
@@ -6,15 +7,30 @@ class edgeFriends:
         self.tightLeptonSel = tightLeptonSel
         self.cleanJet = cleanJet
         self.isMC = isMC
-        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
+        ## with nvtx self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsVinceLumi1p28.txt","r")
+        self.puFile = open("/afs/cern.ch/work/m/mdunser/public/puWeighting/puWeightsOfficialPrescription.txt","r")
         self.pu_dict = eval(self.puFile.read())
         self.puFile.close()
-        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
+        ## for 1.3 fb-1 self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
+        ## nov14 list self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/fullDataset/allFullData.txt","r")
+        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/fullData_Dec01/fullDataset_Dec01.txt","r")
         if not self.isMC:
             self.beamHaloSet = set()
             for i in list(self.beamHaloListFile):
                 self.beamHaloSet.add(i.rstrip('\n'))
         self.beamHaloListFile.close()
+        self.lh_file = ROOT.TFile('/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version6.root')
+        self.h_lh_summlb_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_mlb_ds_cuts_of_sr_met150'))
+        self.h_lh_lepsdr_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_ldr_ds_cuts_of_sr_met150'))
+        self.h_lh_met_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_met_ds_cuts_of_sr_met150'))
+        self.h_lh_zpt_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_zpt_ds_cuts_of_sr_met150'))
+        self.h_lh_st_data     = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_st_ds_cuts_of_sr_met150' ))
+        self.h_lh_summlb_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_mlb_ds_cuts_of_sr_met150'   ))
+        self.h_lh_lepsdr_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_ldr_ds_cuts_of_sr_met150'   ))
+        self.h_lh_met_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_met_ds_cuts_of_sr_met150'   ))
+        self.h_lh_zpt_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_zpt_ds_cuts_of_sr_met150'   ))
+        self.h_lh_st_mc       = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_st_ds_cuts_of_sr_met150'    ))
+        self.lh_file.Close()
     def listBranches(self):
         label = self.label
         biglist = [ ("nLepTight"+label, "I"), ("nJetSel"+label, "I"), ("nPairLep"+label, "I"),
@@ -23,12 +39,13 @@ class edgeFriends:
                  ("nLepGood20"+label, "I"), ("nLepGood20T"+label, "I"),
                  ("nJet35"+label, "I"), ("htJet35j"+label), ("nBJetLoose35"+label, "I"), ("nBJetMedium35"+label, "I"), 
                  ("iL1T"+label, "I"), ("iL2T"+label, "I"), 
-                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"),
+                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"), ("metl1DPhi"+label, "F"), ("metl2DPhi"+label, "F"), ("lepsDPhi"+label, "F"),
                  ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
                  ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
-                 ("PileupW"+label, "F"),
-                 ("min_mlb1"+label, "F"),
-                 ("min_mlb2"+label, "F"),
+                 ("PileupW"+label, "F"), ("min_mlb1"+label, "F"), ("min_mlb2"+label, "F"), ("sum_mlb"+label, "F"), ("st"+label,"F"), ("srID"+label, "I"), 
+                 ("lh_met_data"+label, "F") , ("lh_zpt_data"+label, "F") , ("lh_summlb_data"+label, "F") , ("lh_lepsdr_data"+label, "F") , ("lh_st_data"+label, "F"),
+                 ("lh_met_mc"+label  , "F") , ("lh_zpt_mc"+label  , "F") , ("lh_summlb_mc"+label  , "F") , ("lh_lepsdr_mc"+label  , "F") , ("lh_st_mc"+label  , "F")
+                 
                  ]
         ## for lfloat in 'pt eta phi miniRelIso pdgId'.split():
         ##     if lfloat == 'pdgId':
@@ -50,8 +67,8 @@ class edgeFriends:
         (met, metphi)  = event.met_pt, event.met_phi
         if self.isMC:
             gentaus  = [t for t in Collection(event,"genTau","ngenTau")]
-        ##ntrue = event.nTrueInt
-        nvtx = event.nVert
+            ntrue = event.nTrueInt
+        ## nvtx = event.nVert
         metp4 = ROOT.TLorentzVector()
         metp4.SetPtEtaPhiM(met,0,metphi,0)
         ret = {}; jetret = {}; 
@@ -64,8 +81,8 @@ class edgeFriends:
         # ====================
         # do pileupReweighting
         # ====================
-        puWt = self.pu_dict[nvtx] if self.isMC else 1.
-        if puWt > 10: puWt = 10.
+        puWt = self.pu_dict[ntrue] if self.isMC else 1.
+        #if puWt > 10: puWt = 10.
         ret["PileupW"] = puWt
 
         # ===============================
@@ -106,6 +123,7 @@ class edgeFriends:
         ret['lepsDR'] = iL1iL2[4] 
         ret['lepsMETRec'] = iL1iL2[5] 
         ret['lepsZPt'] = iL1iL2[6] 
+        ret['lepsDPhi'] = iL1iL2[7]
 
         #print 'new event =================================================='
         l1 = ROOT.TLorentzVector()
@@ -139,6 +157,7 @@ class edgeFriends:
                             minDRTau = tmp_dr
                 for lfloat in 'pt eta phi miniRelIso pdgId mvaIdSpring15'.split():
                     lepret["Lep"+str(lcount)+"_"+lfloat+self.label] = getattr(lep,lfloat)
+                lepret['metl'+str(lcount)+'DPhi'+self.label] = abs( deltaPhi( getattr(lep, 'phi'), metphi ))
                 lepret["Lep"+str(lcount)+"_"+"minTauDR"+self.label] = minDRTau
                 ltlvs[lcount-1].SetPtEtaPhiM(lep.pt, lep.eta, lep.phi, 0.0005 if lep.pdgId == 11 else 0.106)
                 lcount += 1
@@ -197,6 +216,7 @@ class edgeFriends:
             ret["nJet35"] += 1; ret["htJet35j"] += j.pt; 
             if j.btagCSV>0.423: ret["nBJetLoose35"] += 1
             if j.btagCSV>0.890: ret["nBJetMedium35"] += 1
+
         ## compute mlb for the two lepton  
 	
         jet = ROOT.TLorentzVector()
@@ -242,6 +262,8 @@ class edgeFriends:
                         max_mlb = tmp   
         ret["min_mlb1"] = min_mlb if min_mlb < 1e6  else -1.
         ret["min_mlb2"] = max_mlb if max_mlb < 1e6  else -1.
+        ret["sum_mlb"] = ret["min_mlb1"] + ret["min_mlb2"]
+        ret["st"] = met+lepret["Lep1_pt"+self.label]+lepret["Lep2_pt"+self.label]
 
         ## beam halo filter list file:
         ## do this only for data
@@ -251,6 +273,36 @@ class edgeFriends:
                 ret['nPairLep'] = -1
         ## ====== done with beam halo check
         
+        ## get the SR id which is 1xx for central and 2xx for forward. the 10 digit is the number of 
+        ## b-tags and the signle digit is the mll region going from 1-5
+        isBasicSREvent = (ret['nPairLep'] > 0 and ret["lepsDR"] > 0.3 and lepret["Lep1_pt"+self.label] > 20. and lepret["Lep2_pt"+self.label] > 20. and ret['lepsMll'] > 20.)
+        isBasicSREvent = isBasicSREvent * (abs(lepret["Lep1_eta"+self.label] - 1.5) > 0.1 and abs(lepret["Lep2_eta"+self.label] - 1.5) > 0.1)
+        isBasicSREvent = isBasicSREvent * ((met > 150 and ret['nJetSel'] >= 2 ) or (met > 100. and ret['nJetSel'] >=3))
+
+        if isBasicSREvent:
+            srID = self.getSRID(ret['lepsMll'], lepret["Lep1_eta"+self.label], lepret["Lep2_eta"+self.label], ret["nBJetMedium35"])
+            ret["srID"] = srID
+            for t in ['data', 'mc']:
+                ret["lh_summlb_%s"%t] = getattr(self, 'h_lh_summlb_%s'%t).GetBinContent( getattr(self, 'h_lh_summlb_%s'%t).FindBin(   ret["sum_mlb"             ]) ) 
+                ret["lh_lepsdr_%s"%t] = getattr(self, 'h_lh_lepsdr_%s'%t).GetBinContent( getattr(self, 'h_lh_lepsdr_%s'%t).FindBin(   ret["lepsDR"              ]) ) 
+                ret["lh_met_%s"   %t] = getattr(self, 'h_lh_met_%s'%t   ).GetBinContent( getattr(self, 'h_lh_met_%s'%t   ).FindBin(   met                        ) ) 
+                ret["lh_zpt_%s"   %t] = getattr(self, 'h_lh_zpt_%s'%t   ).GetBinContent( getattr(self, 'h_lh_zpt_%s'%t   ).FindBin(   ret["lepsZPt"]             ) ) 
+                ret["lh_st_%s"    %t] = getattr(self, 'h_lh_st_%s'%t    ).GetBinContent( getattr(self, 'h_lh_st_%s'%t    ).FindBin(   ret['st']                  ) ) 
+                if not ret["lh_summlb_%s"%t]: ret["lh_summlb_%s"%t] = 1e-6
+                if not ret["lh_lepsdr_%s"%t]: ret["lh_lepsdr_%s"%t] = 1e-6
+                if not ret["lh_met_%s"   %t]: ret["lh_met_%s"   %t] = 1e-6
+                if not ret["lh_zpt_%s"   %t]: ret["lh_zpt_%s"   %t] = 1e-6
+                if not ret["lh_st_%s"    %t]: ret["lh_st_%s"    %t] = 1e-6
+
+        else:
+            ret["srID"]      = -99
+            for t in ['data', 'mc']:
+                ret["lh_summlb_%s"%t] = 0.
+                ret["lh_lepsdr_%s"%t] = 0.
+                ret["lh_met_%s"   %t] = 0.
+                ret["lh_zpt_%s"   %t] = 0.
+                ret["lh_st_%s"    %t] = 0.
+
         
         fullret = {}
         for k,v in ret.iteritems(): 
@@ -267,16 +319,106 @@ class edgeFriends:
         metrecoil = (met + l1 + l2).Pt()
         zpt = (l1 + l2).Pt()
         jzb = metrecoil - zpt
-        return (l1+l2).M(), jzb, l1.DeltaR(l2), metrecoil, zpt
+        return (l1+l2).M(), jzb, l1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
 
     def getPairVariables(self,lepst, metp4):
-        ret = (-999,-999,-99., 0., -99., -99., -99.)
+        ret = (-999,-999,-99., 0., -99., -99., -99., -99.)
         if len(lepst) >= 2:
-            [mll, jzb, dr, metrec, zpt] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4)
-            ret = (0, 1, mll, jzb, dr, metrec, zpt)
+            [mll, jzb, dr, metrec, zpt, dphi] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4)
+            ret = (0, 1, mll, jzb, dr, metrec, zpt, dphi)
         return ret
 
+    def getSRID(self, mll, eta1, eta2, nb):
+        mllid, bid, etaid = -1, -1, -1
+        if    20. < mll <  70.:
+            mllid = 1
+        elif  70. < mll <  81.:
+            mllid = 2
+        elif  81. < mll < 101.:
+            mllid = 3
+        elif 101. < mll < 120.:
+            mllid = 4
+        elif 120. < mll:
+            mllid = 5
+            
+        if abs(eta1) < 1.4 and abs(eta2) < 1.4:
+            etaid = 1
+        else:
+            etaid = 2
 
+        return (100*etaid + 10*nb + mllid)
+
+##  ## ===============================================================
+##  ## ===== bunch of b-tagging stuff. ===============================
+##  ## ===============================================================
+##      def init_btagMediumScaleFactor(self,CSVbtagFileName,EFFbtagFileName,CSVbtagFileNameFastSim):
+##          self.do_btagSF = True
+##          self.btagMediumCalib = ROOT.BTagCalibration("CSVv2", CSVbtagFileName)
+##          if CSVbtagFileNameFastSim: self.btagMediumCalibFastSim = ROOT.BTagCalibration("CSV_FastSim", CSVbtagFileNameFastSim)
+##          self.btagMediumReader=[]
+##          self.btagMediumReader.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "mujets", "down"))
+##          self.btagMediumReader.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "mujets", "central"))
+##          self.btagMediumReader.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "mujets", "up"))
+##          if CSVbtagFileNameFastSim:
+##              self.btagMediumReaderFastSim=[]
+##              self.btagMediumReaderFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "down"))
+##              self.btagMediumReaderFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "central"))
+##              self.btagMediumReaderFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "up"))
+##          self.btagMediumReaderLight=[]
+##          self.btagMediumReaderLight.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "comb", "down"))
+##          self.btagMediumReaderLight.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "comb", "central"))
+##          self.btagMediumReaderLight.append(ROOT.BTagCalibrationReader(self.btagMediumCalib, 1, "comb", "up"))
+##          if CSVbtagFileNameFastSim:
+##              self.btagMediumReaderLightFastSim=[]
+##              self.btagMediumReaderLightFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "down"))
+##              self.btagMediumReaderLightFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "central"))
+##              self.btagMediumReaderLightFastSim.append(ROOT.BTagCalibrationReader(self.btagMediumCalibFastSim, 1, "fastsim", "up"))
+##          self.btagEffFile = ROOT.TFile(EFFbtagFileName,"read")
+##          self.btagEffHistos = (self.btagEffFile.Get("h2_BTaggingEff_csv_med_Eff_b"),self.btagEffFile.Get("h2_BTaggingEff_csv_med_Eff_c"),self.btagEffFile.Get("h2_BTaggingEff_csv_med_Eff_udsg"))
+##      def read_btagMediumScaleFactor(self,readersBC,readersLight,jet,flavor,shift=0,croplowpt=0,crophighpt=1e6):
+##          if abs(shift)>2: raise RuntimeError, 'Unsupported b-tag shift value was passed: %d'%shift
+##          # agreed upon: include jets in under/overflow in last bins
+##          pt = min(max(jet.pt,croplowpt+0.001),crophighpt-0.001)
+##          eta = min(max(jet.eta,-2.399),2.399)
+##          if abs(flavor)==5: fcode = 0
+##          elif abs(flavor)==4: fcode = 1
+##          else: fcode = 2
+##          res = 0
+##          if fcode<2: # correlate systs of B and C
+##              _s = shift if abs(shift)<2 else 0
+##              res = readersBC[_s+1].eval(fcode,eta,pt)
+##          else:
+##              _s = shift/2 if abs(shift)!=1 else 0
+##              res = readersLight[_s+1].eval(fcode,eta,pt)
+##          if res==0: raise RuntimeError,'Btag SF returned zero, something is not correct: flavor=%d, eta=%f, pt=%f'%(flavor,jet.eta,jet.pt)
+##          return res
+##      def read_btagMediumEfficiency(self,jet,flavor):
+##          if abs(flavor)==5: fcode = 0
+##          elif abs(flavor)==4: fcode = 1
+##          else: fcode = 2
+##          h = self.btagEffHistos[fcode]
+##          ptbin = max(1,min(h.GetNbinsX(),h.GetXaxis().FindBin(jet.pt)))
+##          etabin = max(1,min(h.GetNbinsY(),h.GetYaxis().FindBin(abs(jet.eta))))
+##          return h.GetBinContent(ptbin,etabin)
+##  
+##      def btagMediumScaleFactor(self,event,bjets,alljets,shift=0):
+##          if event.isData or (not self.do_btagSF): 
+##              return 1.0
+##          pmc = 1.0; pdata = 1.0
+##          for j in alljets:
+##              sf = self.read_btagMediumScaleFactor(self.btagMediumReader,self.btagMediumReaderLight,j,j.mcFlavour,shift if abs(shift)<3 else 0,croplowpt=30,crophighpt=670)
+##              if self.isFastSim: 
+##                  sf = sf * self.read_btagMediumScaleFactor(self.btagMediumReaderFastSim,self.btagMediumReaderLightFastSim,j,j.mcFlavour,0 if abs(shift)<3 else int(copysign(abs(shift)-2,shift)),croplowpt=20,crophighpt=800)
+##              eff = self.read_btagMediumEfficiency(j,j.mcFlavour)
+##              if j in bjets:
+##                  pmc   = pmc * eff
+##                  pdata = pdata * eff * sf
+##              else:
+##                  pmc = pmc * (1-eff)
+##                  pdata = pdata * (1-eff*sf)
+##          res = pdata/pmc if pmc!=0 else 1.
+##          return res
+    
 def _susyEdge(lep):
         if lep.pt <= 10.: return False
         if abs(lep.eta) > 2.4: return False
