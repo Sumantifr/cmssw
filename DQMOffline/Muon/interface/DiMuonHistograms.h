@@ -58,8 +58,8 @@ class DiMuonHistograms : public DQMEDAnalyzer {
   //Defining relevant eta regions
   std::string EtaName[3];
 
-  double EtaCutMin;
-  double EtaCutMax;
+  double EtaCutMin[3];
+  double EtaCutMax[3];
   double etaBMin;
   double etaBMax;
   double etaECMin;
