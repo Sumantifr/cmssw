@@ -13,24 +13,42 @@ class edgeFriends:
         self.puFile.close()
         ## for 1.3 fb-1 self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/beamHaloEvents_DoubleLep_JetHT_HTMHT.txt","r")
         ## nov14 list self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/fullDataset/allFullData.txt","r")
-        self.beamHaloListFile = open("/afs/cern.ch/work/m/mdunser/public/beamHalo/fullData_Dec01/fullDataset_Dec01.txt","r")
-        if not self.isMC:
+        self.beamHaloListFile = open("/afs/cern.ch/user/p/pablom/public/Filters_27_01_2016/csc2015.txt", "r")
+        self.fourthBadEESuperCrystalFile = open("/afs/cern.ch/user/p/pablom/public/Filters_27_01_2016/ecalscn1043093.txt","r")
+        self.badResolutionTrackTaggerFile = open("/afs/cern.ch/user/p/pablom/public/Filters_27_01_2016/badResolutionTrack.txt","r")
+        self.badMuonTrackTaggerFile = open("/afs/cern.ch/user/p/pablom/public/Filters_27_01_2016/muonBadTrack.txt","r")
+
+	if not self.isMC:
             self.beamHaloSet = set()
+            self.fourthBadEESuperCrystalSet = set()
+            self.badResolutionTrackTaggerSet = set()
+            self.badMuonTrackTaggerSet = set()
             for i in list(self.beamHaloListFile):
                 self.beamHaloSet.add(i.rstrip('\n'))
+            for i in list(self.fourthBadEESuperCrystalFile):
+                self.fourthBadEESuperCrystalSet.add(i.rstrip('\n'))
+            for i in list(self.badResolutionTrackTaggerFile):
+                self.badResolutionTrackTaggerSet.add(i.rstrip('\n'))
+            for i in list(self.badMuonTrackTaggerFile):
+                self.badMuonTrackTaggerSet.add(i.rstrip('\n'))
         self.beamHaloListFile.close()
-        self.lh_file = ROOT.TFile('/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version6.root')
-        self.h_lh_summlb_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_mlb_ds_cuts_of_sr_met150'))
-        self.h_lh_lepsdr_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_ldr_ds_cuts_of_sr_met150'))
-        self.h_lh_met_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_met_ds_cuts_of_sr_met150'))
-        self.h_lh_zpt_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_zpt_ds_cuts_of_sr_met150'))
-        self.h_lh_st_data     = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_st_ds_cuts_of_sr_met150' ))
-        self.h_lh_summlb_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_mlb_ds_cuts_of_sr_met150'   ))
-        self.h_lh_lepsdr_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_ldr_ds_cuts_of_sr_met150'   ))
-        self.h_lh_met_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_met_ds_cuts_of_sr_met150'   ))
-        self.h_lh_zpt_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_zpt_ds_cuts_of_sr_met150'   ))
-        self.h_lh_st_mc       = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_st_ds_cuts_of_sr_met150'    ))
-        self.lh_file.Close()
+        self.fourthBadEESuperCrystalFile.close()
+        self.badResolutionTrackTaggerFile.close()
+        self.badMuonTrackTaggerFile.close()
+        if not self.isMC:
+            self.lh_file = ROOT.TFile('/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version6.root')
+            self.h_lh_summlb_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_mlb_ds_cuts_of_sr_met150'))
+            self.h_lh_lepsdr_data = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_ldr_ds_cuts_of_sr_met150'))
+            self.h_lh_met_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_met_ds_cuts_of_sr_met150'))
+            self.h_lh_zpt_data    = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_zpt_ds_cuts_of_sr_met150'))
+            self.h_lh_st_data     = copy.deepcopy(self.lh_file.Get('emu_data_pdf_histo_st_ds_cuts_of_sr_met150' ))
+            self.h_lh_summlb_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_mlb_ds_cuts_of_sr_met150'   ))
+            self.h_lh_lepsdr_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_ldr_ds_cuts_of_sr_met150'   ))
+            self.h_lh_met_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_met_ds_cuts_of_sr_met150'   ))
+            self.h_lh_zpt_mc      = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_zpt_ds_cuts_of_sr_met150'   ))
+            self.h_lh_st_mc       = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_st_ds_cuts_of_sr_met150'    ))
+            self.lh_file.Close()
+
     def listBranches(self):
         label = self.label
         biglist = [ ("nLepTight"+label, "I"), ("nJetSel"+label, "I"), ("nPairLep"+label, "I"),
@@ -39,7 +57,7 @@ class edgeFriends:
                  ("nLepGood20"+label, "I"), ("nLepGood20T"+label, "I"),
                  ("nJet35"+label, "I"), ("htJet35j"+label), ("nBJetLoose35"+label, "I"), ("nBJetMedium35"+label, "I"), 
                  ("iL1T"+label, "I"), ("iL2T"+label, "I"), 
-                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"), ("metl1DPhi"+label, "F"), ("metl2DPhi"+label, "F"), ("lepsDPhi"+label, "F"),
+                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsJZB_raw"+label, "F"), ("lepsJZB_recoil"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"), ("metl1DPhi"+label, "F"), ("metl2DPhi"+label, "F"), ("lepsDPhi"+label, "F"),
                  ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
                  ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
                  ("PileupW"+label, "F"), ("min_mlb1"+label, "F"), ("min_mlb2"+label, "F"), ("sum_mlb"+label, "F"), ("st"+label,"F"), ("srID"+label, "I"), 
@@ -65,12 +83,15 @@ class edgeFriends:
         jetsc = [j for j in Collection(event,"Jet","nJet")]
         jetsd = [j for j in Collection(event,"DiscJet","nDiscJet")]
         (met, metphi)  = event.met_pt, event.met_phi
+        (met_raw, metphi_raw)  = event.met_rawPt, event.met_rawPhi
         if self.isMC:
             gentaus  = [t for t in Collection(event,"genTau","ngenTau")]
             ntrue = event.nTrueInt
         ## nvtx = event.nVert
         metp4 = ROOT.TLorentzVector()
         metp4.SetPtEtaPhiM(met,0,metphi,0)
+        metp4_raw = ROOT.TLorentzVector()
+        metp4_raw.SetPtEtaPhiM(met_raw,0,metphi_raw,0)
         ret = {}; jetret = {}; 
         lepret = {}
         
@@ -114,16 +135,18 @@ class edgeFriends:
             else: 
                 lepst.append(lepso[-1-il])
         #
-
-        iL1iL2 = self.getPairVariables(lepst, metp4)
+      
+        iL1iL2 = self.getPairVariables(lepst, metp4, metp4_raw)
         ret['iL1T'] = ret["iLT"][ iL1iL2[0] ] if (len(ret["iLT"]) >=1 and iL1iL2[0] != -999) else -999
         ret['iL2T'] = ret["iLT"][ iL1iL2[1] ] if (len(ret["iLT"]) >=2 and iL1iL2[1] != -999) else -999
         ret['lepsMll'] = iL1iL2[2] 
         ret['lepsJZB'] = iL1iL2[3] 
-        ret['lepsDR'] = iL1iL2[4] 
-        ret['lepsMETRec'] = iL1iL2[5] 
-        ret['lepsZPt'] = iL1iL2[6] 
-        ret['lepsDPhi'] = iL1iL2[7]
+        ret['lepsJZB_raw'] = iL1iL2[4] 
+        ret['lepsDR'] = iL1iL2[5] 
+        ret['lepsMETRec'] = iL1iL2[6] 
+        ret['lepsZPt'] = iL1iL2[7] 
+        ret['lepsDPhi'] = iL1iL2[8]
+
 
         #print 'new event =================================================='
         l1 = ROOT.TLorentzVector()
@@ -211,13 +234,17 @@ class edgeFriends:
         # 5. compute the sums
         
         ret["nJet35"] = 0; ret["htJet35j"] = 0; ret["nBJetLoose35"] = 0; ret["nBJetMedium35"] = 0
+        totalRecoil = ROOT.TLorentzVector()
         for j in jetsc+jetsd:
             if not j._clean: continue
             ret["nJet35"] += 1; ret["htJet35j"] += j.pt; 
             if j.btagCSV>0.423: ret["nBJetLoose35"] += 1
             if j.btagCSV>0.890: ret["nBJetMedium35"] += 1
-
-        ## compute mlb for the two lepton  
+            jet = ROOT.TLorentzVector()
+            jet.SetPtEtaPhiM(j.pt, j.eta, j.phi, j.mass)
+            totalRecoil = totalRecoil + jet
+          ## compute mlb for the two lepton  
+        ret['lepsJZB_recoil'] = totalRecoil.Pt() - ret['lepsZPt']
 	
         jet = ROOT.TLorentzVector()
         min_mlb = 1e6
@@ -271,7 +298,13 @@ class edgeFriends:
             evt_str = '%d:%d:%d'%(event.run, event.lumi, event.evt)
             if evt_str in self.beamHaloSet:
                 ret['nPairLep'] = -1
-        ## ====== done with beam halo check
+            if evt_str in self.fourthBadEESuperCrystalSet:
+                ret['nPairLep'] = -1
+            if evt_str in self.badResolutionTrackTaggerSet:
+                ret['nPairLep'] = -1
+            if evt_str in self.badMuonTrackTaggerSet:
+                ret['nPairLep'] = -1
+        ## ====== done with beam halo and other filters check
         
         ## get the SR id which is 1xx for central and 2xx for forward. the 10 digit is the number of 
         ## b-tags and the signle digit is the mll region going from 1-5
@@ -315,17 +348,20 @@ class edgeFriends:
             fullret[k] = v
         return fullret
 
-    def getMll_JZB(self, l1, l2, met):
+    def getMll_JZB(self, l1, l2, met, met_raw, jet_recoil):
         metrecoil = (met + l1 + l2).Pt()
+        metrawrecoil = (met_raw + l1 + l2).Pt() 
         zpt = (l1 + l2).Pt()
         jzb = metrecoil - zpt
-        return (l1+l2).M(), jzb, l1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
+        jzb_raw = metrawrecoil - zpt
+        jzb_recoil = jet_recoil.Pt() - zpt
+        return (l1+l2).M(), jzb, jzb_raw, jzb_recoil, jabPl1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
 
-    def getPairVariables(self,lepst, metp4):
-        ret = (-999,-999,-99., 0., -99., -99., -99., -99.)
+    def getPairVariables(self,lepst, metp4, metp4_raw):
+        ret = (-999,-999,-99., -9000., -9000, -99., -99., -99., -99.)
         if len(lepst) >= 2:
-            [mll, jzb, dr, metrec, zpt, dphi] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4)
-            ret = (0, 1, mll, jzb, dr, metrec, zpt, dphi)
+            [mll, jzb, jzb_raw, dr, metrec, zpt, dphi] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4, metp4_raw)
+            ret = (0, 1, mll, jzb, jzb_raw, dr, metrec, zpt, dphi)
         return ret
 
     def getSRID(self, mll, eta1, eta2, nb):
