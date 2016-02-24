@@ -2,15 +2,13 @@
 
 from CMGTools.TTHAnalysis.treeReAnalyzer import *
 from CMGTools.TTHAnalysis.tools.eventVars_MT2 import *
-print 'i am loading that stuff'
+print 'loading stuff for MT2'
 from PhysicsTools.Heppy.analyzers.core.AutoHandle import AutoHandle
 ROOT.gSystem.Load("libFWCoreFWLite.so")
 ROOT.gSystem.Load("libDataFormatsFWLite.so")
 ROOT.AutoLibraryLoader.enable()
-print 'done loading stuff. trying to include davismt2'
+print 'done loading MT2 stuff.'
 
-from ROOT.heppy import Davismt2
-#from ROOT import Davismt2
 import copy
 
 class edgeFriends:
