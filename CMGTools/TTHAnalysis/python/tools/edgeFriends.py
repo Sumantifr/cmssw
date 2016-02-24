@@ -348,14 +348,13 @@ class edgeFriends:
             fullret[k] = v
         return fullret
 
-    def getMll_JZB(self, l1, l2, met, met_raw, jet_recoil):
+    def getMll_JZB(self, l1, l2, met, met_raw):
         metrecoil = (met + l1 + l2).Pt()
         metrawrecoil = (met_raw + l1 + l2).Pt() 
         zpt = (l1 + l2).Pt()
         jzb = metrecoil - zpt
         jzb_raw = metrawrecoil - zpt
-        jzb_recoil = jet_recoil.Pt() - zpt
-        return (l1+l2).M(), jzb, jzb_raw, jzb_recoil, jabPl1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
+        return (l1+l2).M(), jzb, jzb_raw, l1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
 
     def getPairVariables(self,lepst, metp4, metp4_raw):
         ret = (-999,-999,-99., -9000., -9000, -99., -99., -99., -99.)
