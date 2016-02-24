@@ -34,6 +34,7 @@ ttHLepSkim.maxLeptons = 999
 #ttHLepSkim.idCut  = ""
 #ttHLepSkim.ptCuts = []
 
+runSMS = False
 
 ##########################################################
 ##################Lepton Analyzier########################
@@ -42,7 +43,8 @@ lepAna.doMiniIsolation = True
 lepAna.packedCandidates = 'packedPFCandidates'
 lepAna.miniIsolationPUCorr = 'rhoArea'
 lepAna.miniIsolationVetoLeptons = None # use 'inclusive' to veto inclusive leptons and their footprint in all isolation cones
-lepAna.loose_electron_id  = "POG_MVA_ID_Phys14_NonTrig_VLoose"
+## this is new lepAna.loose_electron_id  = "POG_MVA_ID_Phys14_NonTrig_VLoose"
+lepAna.loose_electron_id = "POG_MVA_ID_Spring15_NonTrig_VLooseIdEmu"
 lepAna.loose_muon_id      = "POG_ID_Loose"
 lepAna.loose_electron_eta = 2.5
 lepAna.loose_electron_pt  = 15
@@ -131,6 +133,17 @@ ttHJetTauAna = cfg.Analyzer(
 
 
 ##########################################################
+############Insertion in susyCoreSequence#################
+##########################################################
+## Insert the FatJet, SV, HeavyFlavour analyzers in the sequence
+susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
+                        ttHFatJetAna)
+susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
+                        ttHSVAna)
+susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
+                        ttHHeavyFlavourHadronAna)
+
+##########################################################
 #################DeClustering Analyzer####################
 ##########################################################
 ## Insert declustering analyzer
@@ -155,6 +168,7 @@ ttHDecluster = cfg.Analyzer(
     mcTauPtCut    = 15,
     )
 
+susyCoreSequence.insert(susyCoreSequence.index(ttHFatJetAna)+1, ttHDecluster)
 
 ##########################################################
 #############TreeProducer SusyMultilepton#################
@@ -174,32 +188,24 @@ treeProducer = cfg.Analyzer(
 
 
 
-##########################################################
-############Insertion in susyCoreSequence#################
-##########################################################
-## Insert the FatJet, SV, HeavyFlavour analyzers in the sequence
-susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
-                        ttHFatJetAna)
-susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
-                        ttHSVAna)
-susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna), 
-                        ttHHeavyFlavourHadronAna)
-
-susyCoreSequence.insert(susyCoreSequence.index(ttHFatJetAna)+1, ttHDecluster)
 
 ## histo counter
-susyCoreSequence.insert(susyCoreSequence.index(skimAnalyzer),
-                        susyCounter)
+if not runSMS:
+    susyCoreSequence.insert(susyCoreSequence.index(skimAnalyzer),
+                            susyCounter)
+else:
+    susyCoreSequence.insert(susyCoreSequence.index(susyScanAna)+1,susyCounter)
 
 # HBHE new filter
 from CMGTools.TTHAnalysis.analyzers.hbheAnalyzer import hbheAnalyzer
 hbheAna = cfg.Analyzer(
     hbheAnalyzer, name="hbheAnalyzer", IgnoreTS4TS5ifJetInLowBVRegion=False
     )
-susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna),hbheAna)
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
-treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
+if not runSMS:
+    susyCoreSequence.insert(susyCoreSequence.index(ttHCoreEventAna),hbheAna)
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew50ns", lambda ev: ev.hbheFilterNew50ns, int, help="new HBHE filter for 50 ns"))
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterNew25ns", lambda ev: ev.hbheFilterNew25ns, int, help="new HBHE filter for 25 ns"))
+    treeProducer.globalVariables.append(NTupleVariable("hbheFilterIso", lambda ev: ev.hbheFilterIso, int, help="HBHE iso-based noise filter"))
 
 
 ## not needed for Oct05 and prompt-v4doT1METCorr = True
@@ -233,6 +239,7 @@ triggerFlagsAna.triggerBits = {
     'pfht400' : triggers_pfht400,
     'pfht475' : triggers_HT475,
     'pfht600' : triggers_HT600,
+    'pfht650' : triggers_pfht650,
     'pfht800' : triggers_HT800,
     'pfht900' : triggers_HT900,
     'at57' : triggers_at57,
@@ -253,12 +260,18 @@ triggerFlagsAna.triggerBits = {
     'HTJet' : triggers_htjet,
 }
 
+if runSMS:
+    susyCoreSequence.remove(triggerFlagsAna)
+    susyCoreSequence.remove(triggerAna)
+    susyCoreSequence.remove(eventFlagsAna)
+
 
 ##########################################################
 ################### Sample imports  ######################
 ##########################################################
 from CMGTools.RootTools.samples.samples_13TeV_RunIISpring15MiniAODv2 import *
 from CMGTools.RootTools.samples.samples_13TeV_DATA2015 import *
+from CMGTools.RootTools.samples.samples_13TeV_signals import *
 
 
 ##########################################################
@@ -291,7 +304,9 @@ if runData:
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258750_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
 
     ## this is the JSON for the full dataset of the year 2015. 2.11 inverse femtobarns
-    json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-260627_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
+    #json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-260627_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
+    ## this is the JSON for moriond
+    json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-260627_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt"
 
     ## # Run2015C, 25 ns, 3.8T
     ## processing = "Run2015C-05Oct2015-v1"; short = "Run2015C_miniAODv2"; run_ranges = [ (246908,260627) ]; useAAA=False; is50ns=False; triggerFlagsAna.checkL1Prescale = False;
@@ -312,11 +327,11 @@ if runData:
     DatasetsAndTriggers = []
     selectedComponents = []; vetos = []  
 
-    useAAA = False
+    useAAA = True
     is50ns = False
     processings = ["Run2015C_25ns-05Oct2015-v1", "Run2015D-05Oct2015-v1", "Run2015D-PromptReco-v4"]
     shorts      = ["Run2015C_25ns-05Oct_v1"    , "Run2015D-05Oct_v1"    , "Run2015D_v4"]
-    run_ranges  = [ (246908,260627) ]
+    run_ranges  = [ (246908,260628) ]
  
     ## hadtriggers = triggers_pfht200 + triggers_pfht250 + triggers_pfht300 + triggers_ht350 + triggers_pfht400 + triggers_ht475 + triggers_ht600 + triggers_HT800 + triggers_HT900 + triggers_at57 + triggers_at55 + triggers_at53 + triggers_at52 + triggers_at51
     ## DatasetsAndTriggers.append( ("DoubleMuon", triggers_mu17mu8 + triggers_mu17mu8_dz + triggers_mu17tkmu8_dz + triggers_mumu_noniso_50ns) )
@@ -359,13 +374,30 @@ if runData:
                                                  useAAA=useAAA)
                 print "Will process %s (%d files)" % (comp.name, len(comp.files))
 #                print "\ttrigger sel %s, veto %s" % (triggers, vetos)
-                comp.splitFactor = len(comp.files)/3
+                comp.splitFactor = len(comp.files)/5
                 comp.fineSplitFactor = 1
                 selectedComponents.append( comp )
             #vetos += triggers
     if json is None:
         susyCoreSequence.remove(jsonAna)
 
+if runSMS:
+    jetAna.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAnaScaleUp.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAnaScaleDown.mcGT = "MCRUN2_74_V9_FASTSIM_291115"
+    jetAna.applyL2L3Residual = False
+    jetAnaScaleUp.applyL2L3Residual = False
+    jetAnaScaleDown.applyL2L3Residual = False
+    useAAA = False ## accesses only files on EOS or at CERN
+
+    print 'I\'m in the sms test thing here!!'
+    selectedComponents = [SMS_T6bbllslepton_mSbottom_400To550_mLSP_200To500_miniAODv2]#, SMS_T6bbllslepton_mSbottom_600To900_mLSP_200To800_miniAODv2]
+    comp.files = comp.files[:1]
+    #for comp in selectedComponents:
+    #    comp.splitFactor = 500
+    #    #comp.finesplitFactor = 4
+    ##comp.splitFactor = 500
+    ##comp.fineSplitFactor = 4
 
 from PhysicsTools.HeppyCore.framework.heppy_loop import getHeppyOption
 test = getHeppyOption('test')
@@ -374,16 +406,37 @@ test = getHeppyOption('test')
 test= '74X-MC'
 if test == 'synch':
     print 'I\'m in the synch test thing here!!'
-    comp = TTLep_pow
+    #comp = TTLep_pow
+    #selectedComponents = [comp]
+    comp = selectedComponents[0]
     selectedComponents = [comp]
     #comp.files = comp.files[:1]
-    comp.files = [
-    '/afs/cern.ch/work/m/mdunser/public/synchFiles/004613BA-C46D-E511-9EB6-001E67248732.root',
-    ]
+    comp.files = comp.files[:1]#[ '/afs/cern.ch/work/m/mdunser/public/synchFiles/004613BA-C46D-E511-9EB6-001E67248732.root' ]
     #comp.finesplitFactor = 10
     #comp.finesplitFactor = 4
 elif test == '74X-MC':
     #what = getHeppyOption("sample")
+    what = 'TT'
+    if what == "TTLep":
+        selectedComponents = [ TTLep_pow ]
+        comp = selectedComponents[0]
+        comp.files = [ '/store/mc/RunIISpring15DR74/TTTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/50000/0C1B984D-F408-E511-872E-0002C90B7F2E.root' ]
+        tmpfil = os.path.expandvars("/tmp/$USER/0C1B984D-F408-E511-872E-0002C90B7F2E.root")
+        if not os.path.exists(tmpfil):
+            os.system("xrdcp root://eoscms//eos/cms%s %s" % (comp.files[0],tmpfil))
+        comp.files = [ tmpfil ]
+    elif what == "TT":
+        ttHLepSkim.minLeptons = 0
+        selectedComponents = [ TT_bx25 ]
+    elif what == "Z":
+        selectedComponents = [ ZEE_bx25, ZMM_bx25, ZTT_bx25 ]
+    else:
+        selectedComponents = RelVals740
+    if not getHeppyOption("all"):
+        for comp in selectedComponents:
+            comp.files = comp.files[:1]
+            comp.splitFactor = 1
+            comp.fineSplitFactor = 1 if getHeppyOption("single") else 4
     selectedComponents = [ DYJetsToLL_M50]
     for comp in selectedComponents:
         comp.splitFactor = 100
@@ -420,6 +473,7 @@ elif test == "express":
     from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
     preprocessor = CmsswPreprocessor("miniAOD-data_PAT.py")
 
+>>>>>>> cms-edgeZ/towards-CMSSW_7_4_16
 
 
 ##########################################################
@@ -443,6 +497,7 @@ outputService.append(output_service)
 from PhysicsTools.HeppyCore.framework.eventsfwlite import Events
 from CMGTools.TTHAnalysis.tools.EOSEventsWithDownload import EOSEventsWithDownload
 event_class = EOSEventsWithDownload
+EOSEventsWithDownload.aggressive = 2 # always fetch if running on Wigner
 
 if getHeppyOption("nofetch"):
     event_class = Events 
