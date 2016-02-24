@@ -289,14 +289,14 @@ preprocessor = None
 ##########################################################
 selectedComponents = [] 
 
-selectedComponents = [ TTLep_pow]
+selectedComponents = [DYJetsToLL_M50]
 
 
 for comp in selectedComponents:
-    comp.splitFactor = 500
+    comp.splitFactor = 100
     comp.finesplitFactor = 4
 
-runData = True
+runData = False
 if runData:
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt"
     ## json = "/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions15/13TeV/Cert_246908-258159_13TeV_PromptReco_Collisions15_25ns_JSON_v3.txt"
@@ -402,6 +402,8 @@ if runSMS:
 from PhysicsTools.HeppyCore.framework.heppy_loop import getHeppyOption
 test = getHeppyOption('test')
 #test = '74X-MC'
+
+test= '74X-MC'
 if test == 'synch':
     print 'I\'m in the synch test thing here!!'
     #comp = TTLep_pow
@@ -435,6 +437,43 @@ elif test == '74X-MC':
             comp.files = comp.files[:1]
             comp.splitFactor = 1
             comp.fineSplitFactor = 1 if getHeppyOption("single") else 4
+    selectedComponents = [ DYJetsToLL_M50]
+    for comp in selectedComponents:
+        comp.splitFactor = 100
+        comp.fineSplitFactor = 4 
+elif test == '74X-Data':
+    #selectedComponents = [DoubleMuon_Run2015B, MuonEG_Run2015B, DoubleEG_Run2015B, JetHT_Run2015B, HTMHT_Run2015B]
+    selectedComponents = [JetHT_Run2015B]#, HTMHT_Run2015B]
+    #selectedComponents = [DoubleMuon_Run2015B]
+    eventFlagsAna.processName = 'HLT'
+    jetAna.recalibrateJets = False
+    jetAna.smearJets       = False 
+    photonAna.do_mc_match = False
+    vertexAna.keepFailingEvents = True 
+    jsonAna.useLumiBlocks = True
+    #sequence.remove(jsonAna)
+    for comp in selectedComponents:
+        comp.isMC = False
+        comp.isData = True
+        #comp.files = ["/afs/cern.ch/work/p/pablom/public/E42FEF61-6E27-E511-B93A-02163E0143C0.root"]
+        comp.files = comp.files[:1]
+
+elif test == "express":
+    selectedComponents = [ MuEG_740p9 ]
+    comp = selectedComponents[0]
+    comp.files = [ 'root://eoscms//eos/cms/store/express/Run2015A/ExpressPhysics/FEVT/Express-v1/000/246/908/00000/04B152E7-DE09-E511-8B18-02163E011D4A.root' ]
+    comp.name  = 'ExpressPhysics'
+    comp.triggers = []
+    comp.json     = None
+    jetAna.recalibrateJets = False 
+    ttHLepSkim.minLeptons = 0
+    # preprocessor cfg to be created with
+    #    cmsDriver.py miniAOD-data -s PAT --data --runUnscheduled --eventcontent MINIAOD --conditions GR_P_V56 --no_exec
+    #    sed -i 's/process.MINIAODoutput_step/process.endpath/' miniAOD-data_PAT.py
+    from PhysicsTools.Heppy.utils.cmsswPreprocessor import CmsswPreprocessor
+    preprocessor = CmsswPreprocessor("miniAOD-data_PAT.py")
+
+>>>>>>> cms-edgeZ/towards-CMSSW_7_4_16
 
 
 ##########################################################
