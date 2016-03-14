@@ -10,7 +10,7 @@ ROOT.AutoLibraryLoader.enable()
 print 'done loading MT2 stuff.'
 
 import copy
-
+import math
 class edgeFriends:
     def __init__(self,label,tightLeptonSel,cleanJet,isMC=False):
         self.label = "" if (label in ["",None]) else ("_"+label)
@@ -46,49 +46,136 @@ class edgeFriends:
         self.badResolutionTrackTaggerFile.close()
         self.badMuonTrackTaggerFile.close()
         ## load the pdf file for the likelihood
-        self.lh_file = ROOT.TFile('/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version11.root')
+        self.lh_file  = ROOT.TFile('/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version20_fitResultsAndFunctions.root')
         # these are the kernel pdfs
         self.h_lh_zpt_data = copy.deepcopy(self.lh_file.Get('em_data_pdf_histo_zpt_ds_cuts_of_sr_met150')); self.h_lh_zpt_data.Scale(1./self.h_lh_zpt_data.Integral())
         self.h_lh_met_data = copy.deepcopy(self.lh_file.Get('em_data_pdf_histo_met_ds_cuts_of_sr_met150')); self.h_lh_met_data.Scale(1./self.h_lh_met_data.Integral())
         self.h_lh_mlb_data = copy.deepcopy(self.lh_file.Get('em_data_pdf_histo_mlb_ds_cuts_of_sr_met150')); self.h_lh_mlb_data.Scale(1./self.h_lh_mlb_data.Integral())
         self.h_lh_ldr_data = copy.deepcopy(self.lh_file.Get('em_data_pdf_histo_ldr_ds_cuts_of_sr_met150')); self.h_lh_ldr_data.Scale(1./self.h_lh_ldr_data.Integral())
+        self.h_lh_a3d_data = copy.deepcopy(self.lh_file.Get('em_data_pdf_histo_a3d_ds_cuts_of_sr_met150')); self.h_lh_a3d_data.Scale(1./self.h_lh_a3d_data.Integral())
         self.h_lh_zpt_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_zpt_ds_cuts_of_sr_met150'  )); self.h_lh_zpt_mc  .Scale(1./self.h_lh_zpt_mc  .Integral())
         self.h_lh_met_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_met_ds_cuts_of_sr_met150'  )); self.h_lh_met_mc  .Scale(1./self.h_lh_met_mc  .Integral())
         self.h_lh_mlb_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_mlb_ds_cuts_of_sr_met150'  )); self.h_lh_mlb_mc  .Scale(1./self.h_lh_mlb_mc  .Integral())
         self.h_lh_ldr_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_ldr_ds_cuts_of_sr_met150'  )); self.h_lh_ldr_mc  .Scale(1./self.h_lh_ldr_mc  .Integral())
-        # these are the analytical pdfs
-        self.h_lh_ana_zpt_data = copy.deepcopy(self.lh_file.Get('em_data_fit_histo_zpt_ds_cuts_of_sr_met150__lepsZPt_Edge')); self.h_lh_ana_zpt_data.Scale(1./self.h_lh_ana_zpt_data.Integral())
-        self.h_lh_ana_met_data = copy.deepcopy(self.lh_file.Get('em_data_fit_histo_met_ds_cuts_of_sr_met150__met_pt'      )); self.h_lh_ana_met_data.Scale(1./self.h_lh_ana_met_data.Integral())
-        self.h_lh_ana_mlb_data = copy.deepcopy(self.lh_file.Get('em_data_fit_histo_mlb_ds_cuts_of_sr_met150__sum_mlb_Edge')); self.h_lh_ana_mlb_data.Scale(1./self.h_lh_ana_mlb_data.Integral())
-        self.h_lh_ana_ldr_data = copy.deepcopy(self.lh_file.Get('em_data_fit_histo_ldr_ds_cuts_of_sr_met150__lepsDR_Edge' )); self.h_lh_ana_ldr_data.Scale(1./self.h_lh_ana_ldr_data.Integral())
-        self.h_lh_ana_zpt_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_fit_histo_zpt_ds_cuts_of_sr_met150__lepsZPt_Edge'  )); self.h_lh_ana_zpt_mc  .Scale(1./self.h_lh_ana_zpt_mc  .Integral())
-        self.h_lh_ana_met_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_fit_histo_met_ds_cuts_of_sr_met150__met_pt'        )); self.h_lh_ana_met_mc  .Scale(1./self.h_lh_ana_met_mc  .Integral())
-        self.h_lh_ana_mlb_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_fit_histo_mlb_ds_cuts_of_sr_met150__sum_mlb_Edge'  )); self.h_lh_ana_mlb_mc  .Scale(1./self.h_lh_ana_mlb_mc  .Integral())
-        self.h_lh_ana_ldr_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_fit_histo_ldr_ds_cuts_of_sr_met150__lepsDR_Edge'   )); self.h_lh_ana_ldr_mc  .Scale(1./self.h_lh_ana_ldr_mc  .Integral())
+        self.h_lh_a3d_mc   = copy.deepcopy(self.lh_file.Get('tt_mc_pdf_histo_a3d_ds_cuts_of_sr_met150'  )); self.h_lh_a3d_mc  .Scale(1./self.h_lh_a3d_mc  .Integral())
         self.lh_file.Close()
+
+        # these are the analytical pdfs
+        self.an_file = ROOT.TFile("/afs/cern.ch/work/m/mdunser/public/pdfsForLikelihood/pdfs_version22_savingTheWorkspace.root")
+        self.wspace = copy.deepcopy( self.an_file.Get('w') )
+              # data
+        for t in ['DA','MC']:
+            for var in [['mlb','sum_mlb_Edge'],['met','met_pt'],['zpt','lepsZPt_Edge'],['ldr','lepsDR_Edge'],['a3d','d3D_Edge']]:
+                setattr(self,'h_lh_ana_%s_%s'%(var[0],t), self.wspace.pdf('%s_analyticalPDF_%s'%(var[0],t)))
+                setattr(self,'var_ana_%s_%s'%(var[0],t) , self.wspace.var(var[1]))
+                setattr(self,'frame_ana_%s_%s'%(var[0],t),getattr(self,'var_ana_%s_%s'%(var[0],t)).frame())
+                getattr(self,'h_lh_ana_%s_%s'%(var[0],t)).plotOn(getattr(self,'frame_ana_%s_%s'%(var[0],t)))
+                setattr(self,'obs_ana%s_%s'%(var[0],t), ROOT.RooArgSet(self.wspace.var(var[1])))
+
+               # mc
+    #    self.h_lh_ana_zpt_mc   = copy.deepcopy(self.an_file.Get('tt_mc_fit_histo_zpt_ds_cuts_of_sr_met150'  )); 
+    #    self.args_zpt_mc = self.h_lh_ana_zpt_mc.getVariables();frame_zptmc=self.args_zpt_mc['lepsZPt_Edge'].frame(); self.h_lh_ana_zpt_mc.plotOn(frame_zptmc)
+    #    self.h_lh_ana_met_mc   = copy.deepcopy(self.an_file.Get('tt_mc_fit_histo_met_ds_cuts_of_sr_met150'  )); 
+    #    self.args_met_mc = self.h_lh_ana_met_mc.getVariables();frame_metmc=self.args_met_mc['met_pt'].frame(); self.h_lh_ana_met_mc.plotOn(frame_metmc)
+    #    self.h_lh_ana_mlb_mc   = copy.deepcopy(self.an_file.Get('tt_mc_fit_histo_mlb_ds_cuts_of_sr_met150'  )); 
+    #    self.args_mlb_mc = self.h_lh_ana_mlb_mc.getVariables();frame_mlbmc=self.args_mlb_mc['sum_mlb_Edge'].frame(); self.h_lh_ana_mlb_mc.plotOn(frame_mlbmc)
+    #    self.h_lh_ana_ldr_mc   = copy.deepcopy(self.an_file.Get('tt_mc_fit_histo_ldr_ds_cuts_of_sr_met150'  )); 
+    #    self.args_ldr_mc = self.h_lh_ana_ldr_mc.getVariables();frame_ldrmc=self.args_ldr_mc['lepsDR_Edge'].frame(); self.h_lh_ana_ldr_mc.plotOn(frame_ldrmc)
+    #    self.h_lh_ana_a3d_mc   = copy.deepcopy(self.an_file.Get('tt_mc_fit_histo_a3d_ds_cuts_of_sr_met150'  )); 
+    #    self.args_a3d_mc = self.h_lh_ana_a3d_mc.getVariables();frame_a3dmc=self.args_a3d_mc['d3D_Edge'].frame(); self.h_lh_ana_a3d_mc.plotOn(frame_a3dmc)
+
+
 
     def listBranches(self):
         label = self.label
-        biglist = [ ("nLepTight"+label, "I"), ("nJetSel"+label, "I"), ("nPairLep"+label, "I"),
-                 ("iLT"+label,"I",20,"nLepTight"+label), 
-                 ("iJ"+label,"I",20,"nJetSel"+label), # index >= 0 if in Jet; -1-index (<0) if in DiscJet
-                 ("nLepGood20"+label, "I"), ("nLepGood20T"+label, "I"),
-                 ("nJet35"+label, "I"), ("htJet35j"+label), ("nBJetLoose35"+label, "I"), ("nBJetMedium35"+label, "I"), 
-                 ("iL1T"+label, "I"), ("iL2T"+label, "I"), 
-                 ("lepsMll"+label, "F"), ("lepsJZB"+label, "F"), ("lepsJZB_raw"+label, "F"), ("lepsJZB_recoil"+label, "F"), ("lepsDR"+label, "F"), ("lepsMETRec"+label, "F"), ("lepsZPt"+label, "F"), ("metl1DPhi"+label, "F"), ("metl2DPhi"+label, "F"), ("lepsDPhi"+label, "F"),
-                 ("Lep1_pt"+label, "F"), ("Lep1_eta"+label, "F"), ("Lep1_phi"+label, "F"), ("Lep1_miniRelIso"+label, "F"), ("Lep1_pdgId"+label, "I"), ("Lep1_mvaIdSpring15"+label, "F"), ("Lep1_minTauDR"+label, "F"),
-                 ("Lep2_pt"+label, "F"), ("Lep2_eta"+label, "F"), ("Lep2_phi"+label, "F"), ("Lep2_miniRelIso"+label, "F"), ("Lep2_pdgId"+label, "I"), ("Lep2_mvaIdSpring15"+label, "F"), ("Lep2_minTauDR"+label, "F"),
-                 ("PileupW"+label, "F"), ("min_mlb1"+label, "F"), ("min_mlb2"+label, "F"), ("sum_mlb"+label, "F"), ("st"+label,"F"), ("srID"+label, "I"), ("mt2"+label, "F"),
-                 ("lh_zpt_data"+label, "F") , ("lh_met_data"+label, "F") , ("lh_mlb_data"+label, "F") , ("lh_ldr_data"+label, "F") ,
-                 ("lh_zpt_mc"+label  , "F") , ("lh_met_mc"+label  , "F") , ("lh_mlb_mc"+label  , "F") , ("lh_ldr_mc"+label  , "F") ,
-                 ("lh_ana_zpt_data"+label, "F") , ("lh_ana_met_data"+label, "F") , ("lh_ana_mlb_data"+label, "F") , ("lh_ana_ldr_data"+label, "F") ,
-                 ("lh_ana_zpt_mc"+label  , "F") , ("lh_ana_met_mc"+label  , "F") , ("lh_ana_mlb_mc"+label  , "F") , ("lh_ana_ldr_mc"+label  , "F") ,
-
-                 ("cum_zpt_data"+label, "F") , ("cum_met_data"+label, "F") , ("cum_mlb_data"+label, "F") , ("cum_ldr_data"+label, "F") ,
-                 ("cum_zpt_mc"+label  , "F") , ("cum_met_mc"+label  , "F") , ("cum_mlb_mc"+label  , "F") , ("cum_ldr_mc"+label  , "F") ,
-                 ("cum_ana_zpt_data"+label, "F") , ("cum_ana_met_data"+label, "F") , ("cum_ana_mlb_data"+label, "F") , ("cum_ana_ldr_data"+label, "F") ,
-                 ("cum_ana_zpt_mc"+label  , "F") , ("cum_ana_met_mc"+label  , "F") , ("cum_ana_mlb_mc"+label  , "F") , ("cum_ana_ldr_mc"+label  , "F")
-                 
+        biglist = [ ("nLepTight"+label, "I"),
+                    ("nJetSel"+label, "I"),
+                    ("nPairLep"+label, "I"),
+                    ("iLT"+label,"I",20,"nLepTight"+label), 
+                    ("iJ"+label,"I",20,"nJetSel"+label), # index >= 0 if in Jet; -1-index (<0) if in DiscJet
+                    ("nLepGood20"+label, "I"),
+                    ("nLepGood20T"+label, "I"),
+                    ("nJet35"+label, "I"), 
+                    ("htJet35j"+label),
+                    ("nBJetLoose35"+label, "I"),
+                    ("nBJetMedium35"+label, "I"), 
+                    ("iL1T"+label, "I"),
+                    ("iL2T"+label, "I"), 
+                    ("lepsMll"+label, "F"),
+                    ("lepsJZB"+label, "F"), 
+                    ("lepsJZB_raw"+label, "F"),
+                    ("lepsJZB_recoil"+label, "F"),
+                    ("lepsDR"+label, "F"),
+                    ("lepsMETRec"+label, "F"),
+                    ("lepsZPt"+label, "F"),
+                    ("metl1DPhi"+label, "F"),
+                    ("metl2DPhi"+label, "F"),
+                    ("lepsDPhi"+label, "F"),
+                    ("Lep1_pt"+label, "F"), 
+                    ("Lep1_eta"+label, "F"), 
+                    ("Lep1_phi"+label, "F"),
+                    ("Lep1_miniRelIso"+label, "F"),
+                    ("Lep1_pdgId"+label, "I"), 
+                    ("Lep1_mvaIdSpring15"+label, "F"),
+                    ("Lep1_minTauDR"+label, "F"),
+                    ("Lep2_pt"+label, "F"), 
+                    ("Lep2_eta"+label, "F"),
+                    ("Lep2_phi"+label, "F"),
+                    ("Lep2_miniRelIso"+label, "F"),
+                    ("Lep2_pdgId"+label, "I"),
+                    ("Lep2_mvaIdSpring15"+label, "F"),
+                    ("Lep2_minTauDR"+label, "F"),
+                    ("PileupW"+label, "F"), 
+                    ("min_mlb1"+label, "F"),
+                    ("min_mlb2"+label, "F"),
+                    ("sum_mlb"+label, "F"), 
+                    ("st"+label,"F"), 
+                    ("srID"+label, "I"), 
+                    ("mt2"+label, "F"),
+                    ("lh_zpt_data"+label, "F"),
+                    ("lh_a3d_data"+label, "F"),
+                    ("lh_met_data"+label, "F"), 
+                    ("lh_mlb_data"+label, "F"), 
+                    ("lh_ldr_data"+label, "F"),
+                    ("lh_zpt_mc"+label  , "F"),
+                    ("lh_a3d_mc"+label  , "F"),
+                    ("lh_met_mc"+label  , "F") , 
+                    ("lh_mlb_mc"+label  , "F") , 
+                    ("lh_ldr_mc"+label  , "F") ,
+                    ("lh_ana_zpt_data"+label, "F") ,
+                    ("lh_ana_a3d_data"+label, "F") ,
+                    ("lh_ana_met_data"+label, "F") ,
+                    ("lh_ana_mlb_data"+label, "F") , 
+                    ("lh_ana_ldr_data"+label, "F") ,
+                    ("lh_ana_zpt_mc"+label  , "F") , 
+                    ("lh_ana_met_mc"+label  , "F") , 
+                    ("lh_ana_mlb_mc"+label  , "F") , 
+                    ("lh_ana_ldr_mc"+label  , "F") ,
+                    ("lh_ana_a3d_mc"+label  , "F") ,
+#                    ("cum_zpt_data"+label, "F") , 
+#                    ("cum_met_data"+label, "F") , 
+#                    ("cum_mlb_data"+label, "F") ,
+#                    ("cum_ldr_data"+label, "F") , 
+#                    ("cum_a3d_data"+label, "F") ,
+#                    ("cum_zpt_mc"+label  , "F") , 
+#                    ("cum_met_mc"+label  , "F") , 
+#                    ("cum_mlb_mc"+label  , "F") , 
+#                    ("cum_ldr_mc"+label  , "F") , 
+#                    ("cum_a3d_mc"+label  , "F") ,
+#                    ("cum_ana_zpt_data"+label, "F") ,
+#                    ("cum_ana_met_data"+label, "F") , 
+#                    ("cum_ana_mlb_data"+label, "F") , 
+#                    ("cum_ana_ldr_data"+label, "F") ,
+#                    ("cum_ana_a3d_data"+label, "F") ,
+#                    ("cum_ana_zpt_mc"+label  , "F") , 
+#                    ("cum_ana_met_mc"+label  , "F") , 
+#                    ("cum_ana_mlb_mc"+label  , "F") ,
+#                    ("cum_ana_ldr_mc"+label  , "F"),
+#                    ("cum_ana_a3d_mc"+label  , "F"),
+                    ("d3D" + label, "F"),
+                    ("parPt" + label, "F"),
+                    ("ortPt" + label, "F"),
+                    ("dTheta" + label, "F")
                  ]
         ## for lfloat in 'pt eta phi miniRelIso pdgId'.split():
         ##     if lfloat == 'pdgId':
@@ -161,7 +248,6 @@ class edgeFriends:
             else: 
                 lepst.append(lepso[-1-il])
         #
-      
         iL1iL2 = self.getPairVariables(lepst, metp4, metp4_raw)
         ret['iL1T'] = ret["iLT"][ iL1iL2[0] ] if (len(ret["iLT"]) >=1 and iL1iL2[0] != -999) else -999
         ret['iL2T'] = ret["iLT"][ iL1iL2[1] ] if (len(ret["iLT"]) >=2 and iL1iL2[1] != -999) else -999
@@ -172,7 +258,10 @@ class edgeFriends:
         ret['lepsMETRec'] = iL1iL2[6] 
         ret['lepsZPt'] = iL1iL2[7] 
         ret['lepsDPhi'] = iL1iL2[8]
-
+        ret['d3D']      = iL1iL2[9]
+        ret['parPt']    = iL1iL2[10]
+        ret['ortPt']    = iL1iL2[11]
+        ret['dTheta']    = iL1iL2[12]
 
         #print 'new event =================================================='
         l1 = ROOT.TLorentzVector()
@@ -341,26 +430,45 @@ class edgeFriends:
         isBasicSREvent = (ret['nPairLep'] > 0 and ret["lepsDR"] > 0.3 and lepret["Lep1_pt"+self.label] > 20. and lepret["Lep2_pt"+self.label] > 20. and ret['lepsMll'] > 20.)
         isBasicSREvent = isBasicSREvent * (abs(lepret["Lep1_eta"+self.label] - 1.5) > 0.1 and abs(lepret["Lep2_eta"+self.label] - 1.5) > 0.1)
         isBasicSREvent = isBasicSREvent * ((met > 150 and ret['nJetSel'] >= 2 ) or (met > 100. and ret['nJetSel'] >=3))
-
         if isBasicSREvent:
             srID = self.getSRID(ret['lepsMll'], lepret["Lep1_eta"+self.label], lepret["Lep2_eta"+self.label], ret["nBJetMedium35"])
             ret["srID"] = srID
-            for t in ['data', 'mc']:
-                for u in ['_ana', '']:
-                    ret["lh%s_zpt_%s"%(u,t)] = getattr(self, 'h_lh%s_zpt_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_zpt_%s'%(u,t)).FindBin( ret["lepsZPt"]  ) ) 
-                    ret["lh%s_met_%s"%(u,t)] = getattr(self, 'h_lh%s_met_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_met_%s'%(u,t)).FindBin( met             ) ) 
-                    ret["lh%s_mlb_%s"%(u,t)] = getattr(self, 'h_lh%s_mlb_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_mlb_%s'%(u,t)).FindBin( ret["sum_mlb"]  ) ) 
-                    ret["lh%s_ldr_%s"%(u,t)] = getattr(self, 'h_lh%s_ldr_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_ldr_%s'%(u,t)).FindBin( ret["lepsDR" ]  ) ) 
+            for t in  ['data','mc']:
+                if t == 'data': nam = 'DA'
+                else:           nam = 'MC'
+                for u in ['_ana']:
+                    for var in [['mlb',ret['sum_mlb'],'sum_mlb_Edge'],['met',met,'met_pt'],
+                                ['zpt',ret['lepsZPt'],'lepsZPt_Edge'],['ldr',ret['lepsDR'],'lepsDR_Edge'],
+                                ['a3d',ret['d3D'],'d3D_Edge']]:
+                        self.wspace.var(var[2]).setVal(var[1])
+                        ret["lh%s_%s_%s"%(u,var[0],t)] = getattr(self,'h_lh_ana_%s_%s'%(var[0],nam)).getVal(getattr(self,'obs_ana%s_%s'%(var[0],nam)))
+                    
                     if not ret["lh%s_mlb_%s"%(u,t)]: ret["lh%s_mlb_%s"%(u,t)] = 1e-6
                     if not ret["lh%s_ldr_%s"%(u,t)]: ret["lh%s_ldr_%s"%(u,t)] = 1e-6
                     if not ret["lh%s_met_%s"%(u,t)]: ret["lh%s_met_%s"%(u,t)] = 1e-6
                     if not ret["lh%s_zpt_%s"%(u,t)]: ret["lh%s_zpt_%s"%(u,t)] = 1e-6
-
-                    ret["cum%s_zpt_%s"%(u,t)] = getattr(self, 'h_lh%s_zpt_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_zpt_%s'%(u,t)).FindBin( ret["lepsZPt"]  ) ) 
-                    ret["cum%s_met_%s"%(u,t)] = getattr(self, 'h_lh%s_met_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_met_%s'%(u,t)).FindBin( met             ) ) 
-                    ret["cum%s_mlb_%s"%(u,t)] = getattr(self, 'h_lh%s_mlb_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_mlb_%s'%(u,t)).FindBin( ret["sum_mlb"]  ) ) 
-                    ret["cum%s_ldr_%s"%(u,t)] = getattr(self, 'h_lh%s_ldr_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_ldr_%s'%(u,t)).FindBin( ret["lepsDR" ]  ) ) 
-
+                    if not ret["lh%s_a3d_%s"%(u,t)]: ret["lh%s_a3d_%s"%(u,t)] = 1e-6
+#                    ret["cum%s_zpt_%s"%(u,t)] = getattr(self, 'h_lh%s_zpt_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_zpt_%s'%(u,t)).FindBin( ret["lepsZPt"]  ) ) 
+#                    ret["cum%s_met_%s"%(u,t)] = getattr(self, 'h_lh%s_met_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_met_%s'%(u,t)).FindBin( met             ) ) 
+#                    ret["cum%s_mlb_%s"%(u,t)] = getattr(self, 'h_lh%s_mlb_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_mlb_%s'%(u,t)).FindBin( ret["sum_mlb"]  ) ) 
+#                    ret["cum%s_ldr_%s"%(u,t)] = getattr(self, 'h_lh%s_ldr_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_ldr_%s'%(u,t)).FindBin( ret["lepsDR" ]  ) ) 
+#                    ret["cum%s_a3d_%s"%(u,t)] = getattr(self, 'h_lh%s_a3d_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_a3d_%s'%(u,t)).FindBin( ret["d3D" ]  ) ) 
+                for u in ['']:
+                    ret["lh%s_zpt_%s"%(u,t)] = getattr(self, 'h_lh%s_zpt_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_zpt_%s'%(u,t)).FindBin( ret["lepsZPt"]  ) ) 
+                    ret["lh%s_met_%s"%(u,t)] = getattr(self, 'h_lh%s_met_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_met_%s'%(u,t)).FindBin( met             ) ) 
+                    ret["lh%s_mlb_%s"%(u,t)] = getattr(self, 'h_lh%s_mlb_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_mlb_%s'%(u,t)).FindBin( ret["sum_mlb"]  ) ) 
+                    ret["lh%s_ldr_%s"%(u,t)] = getattr(self, 'h_lh%s_ldr_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_ldr_%s'%(u,t)).FindBin( ret["lepsDR" ]  ) ) 
+                    ret["lh%s_a3d_%s"%(u,t)] = getattr(self, 'h_lh%s_a3d_%s'%(u,t)).GetBinContent( getattr(self, 'h_lh%s_a3d_%s'%(u,t)).FindBin( ret['d3D'] )  )
+                    if not ret["lh%s_mlb_%s"%(u,t)]: ret["lh%s_mlb_%s"%(u,t)] = 1e-6
+                    if not ret["lh%s_ldr_%s"%(u,t)]: ret["lh%s_ldr_%s"%(u,t)] = 1e-6
+                    if not ret["lh%s_met_%s"%(u,t)]: ret["lh%s_met_%s"%(u,t)] = 1e-6
+                    if not ret["lh%s_zpt_%s"%(u,t)]: ret["lh%s_zpt_%s"%(u,t)] = 1e-6
+                    if not ret["lh%s_a3d_%s"%(u,t)]: ret["lh%s_a3d_%s"%(u,t)] = 1e-6
+#                    ret["cum%s_zpt_%s"%(u,t)] = getattr(self, 'h_lh%s_zpt_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_zpt_%s'%(u,t)).FindBin( ret["lepsZPt"]  ) ) 
+#                    ret["cum%s_met_%s"%(u,t)] = getattr(self, 'h_lh%s_met_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_met_%s'%(u,t)).FindBin( met             ) ) 
+#                    ret["cum%s_mlb_%s"%(u,t)] = getattr(self, 'h_lh%s_mlb_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_mlb_%s'%(u,t)).FindBin( ret["sum_mlb"]  ) ) 
+#                    ret["cum%s_ldr_%s"%(u,t)] = getattr(self, 'h_lh%s_ldr_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_ldr_%s'%(u,t)).FindBin( ret["lepsDR" ]  ) ) 
+#                    ret["cum%s_a3d_%s"%(u,t)] = getattr(self, 'h_lh%s_a3d_%s'%(u,t)).Integral( 1, getattr(self, 'h_lh%s_a3d_%s'%(u,t)).FindBin( ret["d3D" ]  ) ) 
         else:
             ret["srID"]      = -99
             for t in ['data', 'mc']:
@@ -369,11 +477,13 @@ class edgeFriends:
                     ret["lh%s_ldr_%s"%(u,t)] = -999.
                     ret["lh%s_met_%s"%(u,t)] = -999.
                     ret["lh%s_zpt_%s"%(u,t)] = -999.
+                    ret["lh%s_a3d_%s"%(u,t)] = -999.
 
-                    ret["cum%s_mlb_%s"%(u,t)] = -999.
-                    ret["cum%s_ldr_%s"%(u,t)] = -999.
-                    ret["cum%s_met_%s"%(u,t)] = -999.
-                    ret["cum%s_zpt_%s"%(u,t)] = -999.
+#                    ret["cum%s_mlb_%s"%(u,t)] = -999.
+#                    ret["cum%s_ldr_%s"%(u,t)] = -999.
+#                    ret["cum%s_met_%s"%(u,t)] = -999.
+#                    ret["cum%s_zpt_%s"%(u,t)] = -999.
+#                    ret["cum%s_a3d_%s"%(u,t)] = -999.
 
         
         fullret = {}
@@ -393,13 +503,27 @@ class edgeFriends:
         zpt = (l1 + l2).Pt()
         jzb = metrecoil - zpt
         jzb_raw = metrawrecoil - zpt
-        return (l1+l2).M(), jzb, jzb_raw, l1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() ) )
+        v1 = l1.Vect()
+        v2 = l2.Vect()
+        return ((l1+l2).M(), jzb, jzb_raw, l1.DeltaR(l2), metrecoil, zpt, abs( deltaPhi( l1.Phi(), l2.Phi() )) , v1.Angle(v2))
+    def getParOrtPt(self, l1, l2):
+        if l1.Pt() > l2.Pt():
+            v1 = l1.Vect()
+            v2 = l2.Vect()
+        else:
+            v1 = l2.Vect()
+            v2 = l1.Vect()
+        u1 = v1.Unit()                              # direction of the harder lepton
+        p1 = math.cos(v1.Angle(v2)) * v2.Mag() * u1 # projection of the softer lepton onto the harder
+        o1 = v1 - p1                                # orthogonal to the projection of the softer onto the harder
+        return  (p1.Perp(), o1.Perp())
 
     def getPairVariables(self,lepst, metp4, metp4_raw):
-        ret = (-999,-999,-99., -9000., -9000, -99., -99., -99., -99.)
+        ret = (-999,-999,-99., -9000., -9000, -99., -99., -99., -99.,-99.,-99.,-99.,-99.,-99.)
         if len(lepst) >= 2:
-            [mll, jzb, jzb_raw, dr, metrec, zpt, dphi] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4, metp4_raw)
-            ret = (0, 1, mll, jzb, jzb_raw, dr, metrec, zpt, dphi)
+            [mll, jzb, jzb_raw, dr, metrec, zpt, dphi, d3D] = self.getMll_JZB(lepst[0].p4(), lepst[1].p4(), metp4, metp4_raw)
+            [parPt, ortPt] = self.getParOrtPt(lepst[0].p4(),lepst[1].p4())
+            ret = (0, 1, mll, jzb, jzb_raw, dr, metrec, zpt, dphi, d3D, parPt, ortPt, lepst[0].p4().Theta() - lepst[1].p4().Theta())
         return ret
 
     def getSRID(self, mll, eta1, eta2, nb):
