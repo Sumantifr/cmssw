@@ -144,9 +144,11 @@ HLTMuonOfflineAnalyzer::dqmBeginRun(const edm::Run & iRun,
   set<string> hltPaths;
   for (size_t i = 0; i < hltPathsToCheck_.size(); i++) {
     TPRegexp pattern(hltPathsToCheck_[i]);
-    for (size_t j = 0; j < hltConfig_.triggerNames().size(); j++)
-      if (TString(hltConfig_.triggerNames()[j]).Contains(pattern))
+    for (size_t j = 0; j < hltConfig_.triggerNames().size(); j++){
+      if (TString(hltConfig_.triggerNames()[j]).Contains(pattern)){
         hltPaths.insert(hltConfig_.triggerNames()[j]);
+      }
+    }
   }
   
   // Initialize the plotters
