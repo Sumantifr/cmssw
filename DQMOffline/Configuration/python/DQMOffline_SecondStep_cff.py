@@ -83,9 +83,9 @@ from DQMOffline.L1Trigger.L1TriggerDqmOffline_SecondStep_cff import *
 DQMHarvestCommon = cms.Sequence( dqmRefHistoRootFileGetter *
                                  DQMMessageLoggerClientSeq *
                                  dqmDcsInfoClient *
-                                 SiStripOfflineDQMClient *
-                                 TrackingOfflineDQMClient *
-                                 PixelOfflineDQMClientNoDataCertification *
+                                 #SiStripOfflineDQMClient *
+                                 #TrackingOfflineDQMClient *
+                                 #PixelOfflineDQMClientNoDataCertification *
                                  triggerOfflineDQMClient *
                                  hltOfflineDQMClient *
                                  dqmFEDIntegrityClient *

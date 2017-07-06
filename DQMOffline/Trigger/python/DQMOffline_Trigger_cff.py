@@ -79,16 +79,16 @@ from DQMOffline.Trigger.BPHMonitor_cff import *
 from DQMOffline.Trigger.topHLTOfflineDQM_cff import *
 offlineHLTSource = cms.Sequence(
     hltResults *
-    lumiMonitorHLTsequence *
-    hcalMonitoringSequence *
+    #lumiMonitorHLTsequence *
+    #hcalMonitoringSequence *
     egHLTOffDQMSource *
     muonFullOfflineDQM *
     HLTTauDQMOffline *
-    jetMETHLTOfflineAnalyzer * 
-    fsqHLTOfflineSourceSequence *
-    HILowLumiHLTOfflineSourceSequence *
-    hltInclusiveVBFSource *
-    higPhotonJetHLTOfflineSource*
+    #jetMETHLTOfflineAnalyzer * 
+    #fsqHLTOfflineSourceSequence *
+    #HILowLumiHLTOfflineSourceSequence *
+    #hltInclusiveVBFSource *
+    #higPhotonJetHLTOfflineSource*
     dqmEnvHLT *
     topHLTriggerOfflineDQM *
     eventshapeDQMSequence *

@@ -10,9 +10,9 @@ from Configuration.StandardSequences.Eras import eras
 
 DQMOffline_Certification = cms.Sequence(daq_dqmoffline*dcs_dqmoffline*crt_dqmoffline)
 
-DQMCertCommon = cms.Sequence(siStripDaqInfo * sipixelDaqInfo * 
-                             siStripDcsInfo * sipixelDcsInfo *
-                             siStripCertificationInfo * sipixelCertification *
+DQMCertCommon = cms.Sequence(#siStripDaqInfo * sipixelDaqInfo * 
+                             #siStripDcsInfo * sipixelDcsInfo *
+                             #siStripCertificationInfo * sipixelCertification *
                              trackingCertificationInfo *
                              egammaDataCertificationTask *
                              dqmOfflineTriggerCert)

@@ -115,16 +115,16 @@ DQMOuterTracker = cms.Sequence( dqmDcsInfo *
 
 DQMOfflineCommon = cms.Sequence( dqmDcsInfo *
                                  DQMMessageLogger *
-                                 SiStripDQMTier0Common *
-                                 siPixelOfflineDQM_source *
-                                 DQMOfflineTracking *
-                                 l1TriggerDqmOffline *
+                                 #SiStripDQMTier0Common *
+                                 #siPixelOfflineDQM_source *
+                                 #DQMOfflineTracking *
+                                 #l1TriggerDqmOffline *
                                  triggerOfflineDQMSource *
-                                 alcaBeamMonitor *
-                                 castorSources *
+                                 #alcaBeamMonitor *
+                                 #castorSources *
                                  dqmPhysics *
-                                 produceDenoms *
-                                 pfTauRunDQMValidation 
+                                 produceDenoms 
+                                 #pfTauRunDQMValidation 
                                 )
 DQMOfflineCommonSiStripZeroBias = cms.Sequence( dqmDcsInfo *
                                  DQMMessageLogger *
