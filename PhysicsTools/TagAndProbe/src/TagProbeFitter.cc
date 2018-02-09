@@ -312,7 +312,9 @@ string TagProbeFitter::calculateEfficiency(string dirName,const std::vector<stri
     //save the distribution of variables
     if (doSaveDistributionsPlot) saveDistributionsPlot(w);
     //do the fitting only if there is sufficient number of events
+
     if(data_bin->numEntries()>0){
+
       //set the values of binnedVariables to the mean value in this data bin
       RooArgSet meanOfVariables;
       RooLinkedListIter vit = binnedVariables.iterator();
@@ -347,8 +349,16 @@ string TagProbeFitter::calculateEfficiency(string dirName,const std::vector<stri
     if(saveWorkspace){
       w->Write("w");
     }
-    //clean up
+    // Save reduced workspace :)
+    RooWorkspace* red_w = new RooWorkspace();
+    red_w->import( w->allPdfs(), RecycleConflictNodes() ) ;
+    if (w->data("data_binned")) 
+      red_w->import(*w->data("data_binned"));//, RecycleConflictNodes());
+    red_w->Write("red_w");
+
+    delete red_w;
     delete w;
+
     //get back to the initial directory
     gDirectory->cd("..");
   }
@@ -385,6 +395,7 @@ void TagProbeFitter::doFitEfficiency(RooWorkspace* w, string pdfName, RooRealVar
   
   RooAbsData *data = w->data("data");
   std::unique_ptr<RooDataHist> bdata;
+
   if (binnedFit) { 
     // get variables from data, which contain also other binning or expression variables
     const RooArgSet *dataObs = data->get(0); 
