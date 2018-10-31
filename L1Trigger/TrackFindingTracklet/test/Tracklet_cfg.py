@@ -42,7 +42,16 @@ if GEOMETRY == "D17":
     Source_Files = cms.untracked.vstring(
         "/store/relval/CMSSW_9_3_2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/93X_upgrade2023_realistic_v2_2023D17noPU-v1/10000/0681719F-AFA6-E711-87C9-0CC47A4C8E14.root"
     )
-process.source = cms.Source("PoolSource", fileNames = Source_Files)
+
+process.source = cms.Source("PoolSource", fileNames = Source_Files,
+                            inputCommands=cms.untracked.vstring(
+        'keep *',
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_CSC_HLT',
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_RPC_HLT',
+        'drop l1tEMTFHit2016s_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016Extras_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016s_simEmtfDigis__HLT')
+)
 
 
 ############################################################
@@ -57,7 +66,7 @@ process.load("SimTracker.TrackTriggerAssociation.TrackTriggerAssociator_cff")
 #    TTStubAlgorithm_official_Phase2TrackerDigi_.zMatchingPS = cms.bool(False)
 
 process.TTClusterStub = cms.Path(process.TrackTriggerClustersStubs)
-process.TTClusterStubTruth = cms.Path(process.TrackTriggerAssociatorClustersStubs)
+#process.TTClusterStubTruth = cms.Path(process.TrackTriggerAssociatorClustersStubs)
 
 
 ############################################################
@@ -71,7 +80,7 @@ process.TTClusterStubTruth = cms.Path(process.TrackTriggerAssociatorClustersStub
 
 process.load("L1Trigger.TrackFindingTracklet.L1TrackletTracks_cff")
 process.TTTracks = cms.Path(process.L1TrackletTracks)
-process.TTTracksWithTruth = cms.Path(process.L1TrackletTracksWithAssociators)
+#process.TTTracksWithTruth = cms.Path(process.L1TrackletTracksWithAssociators)
 
 
 ############################################################
@@ -94,8 +103,8 @@ process.FEVToutput_step = cms.EndPath(process.out)
 #process.schedule = cms.Schedule(process.TTClusterStub,TrackTriggerAssociatorClustersStubs,process.TTTracksWithTruth,process.FEVToutput_step)
 
 # use this if cluster/stub associators not available 
-process.schedule = cms.Schedule(process.TTClusterStubTruth,process.TTTracksWithTruth,process.FEVToutput_step)
+#process.schedule = cms.Schedule(process.FEVToutput_step)
 
 # use this to only run tracking + track associator
-#process.schedule = cms.Schedule(process.TTTracksWithTruth,process.FEVToutput_step)
+process.schedule = cms.Schedule(process.TTTracks,process.FEVToutput_step)
 
