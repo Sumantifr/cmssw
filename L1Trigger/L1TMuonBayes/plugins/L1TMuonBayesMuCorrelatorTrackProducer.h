@@ -40,16 +40,18 @@ class L1TMuonBayesMuCorrelatorTrackProducer : public edm::EDProducer {
  private:
 
 
-  std::unique_ptr<PdfModule> readPdfs(std::string fileName);
+  void readPdfs(IPdfModule* pdfModule, std::string fileName);
   void writePdfs(const IPdfModule* pdfModule, std::string fileName);
 
 
   edm::ParameterSet edmParameterSet;
   
-  edm::EDGetTokenT<L1MuDTChambPhContainer> inputTokenDTPh;
+/*  edm::EDGetTokenT<L1MuDTChambPhContainer> inputTokenDTPh;
   edm::EDGetTokenT<L1MuDTChambThContainer> inputTokenDTTh;
   edm::EDGetTokenT<CSCCorrelatedLCTDigiCollection> inputTokenCSC;
-  edm::EDGetTokenT<RPCDigiCollection> inputTokenRPC;
+  edm::EDGetTokenT<RPCDigiCollection> inputTokenRPC;*/
+
+  MuStubsInputTokens muStubsInputTokens;
 
   edm::EDGetTokenT< std::vector< TTTrack< Ref_Phase2TrackerDigi_ > > > ttTrackToken;
 

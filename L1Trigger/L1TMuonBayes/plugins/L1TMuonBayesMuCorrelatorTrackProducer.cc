@@ -31,10 +31,10 @@ L1TMuonBayesMuCorrelatorTrackProducer::L1TMuonBayesMuCorrelatorTrackProducer(con
 
   produces<l1t::RegionalMuonCandBxCollection >("MuCorr");
 
-  inputTokenDTPh = consumes<L1MuDTChambPhContainer>(edmParameterSet.getParameter<edm::InputTag>("srcDTPh"));
-  inputTokenDTTh = consumes<L1MuDTChambThContainer>(edmParameterSet.getParameter<edm::InputTag>("srcDTTh"));
-  inputTokenCSC = consumes<CSCCorrelatedLCTDigiCollection>(edmParameterSet.getParameter<edm::InputTag>("srcCSC"));
-  inputTokenRPC = consumes<RPCDigiCollection>(edmParameterSet.getParameter<edm::InputTag>("srcRPC"));
+  muStubsInputTokens.inputTokenDTPh = consumes<L1MuDTChambPhContainer>(edmParameterSet.getParameter<edm::InputTag>("srcDTPh"));
+  muStubsInputTokens.inputTokenDTTh = consumes<L1MuDTChambThContainer>(edmParameterSet.getParameter<edm::InputTag>("srcDTTh"));
+  muStubsInputTokens.inputTokenCSC = consumes<CSCCorrelatedLCTDigiCollection>(edmParameterSet.getParameter<edm::InputTag>("srcCSC"));
+  muStubsInputTokens.inputTokenRPC = consumes<RPCDigiCollection>(edmParameterSet.getParameter<edm::InputTag>("srcRPC"));
 
   edm::InputTag l1TrackInputTag = cfg.getParameter<edm::InputTag>("L1TrackInputTag");
   ttTrackToken = consumes< std::vector< TTTrack< Ref_Phase2TrackerDigi_ > > >(l1TrackInputTag);
@@ -72,16 +72,20 @@ void L1TMuonBayesMuCorrelatorTrackProducer::endJob(){
   //m_Reconstruction.endJob();
 
   IPdfModule* pdfModule = muCorrelatorProcessor->getPdfModule();
-  const PdfModuleWithStats* pdfModuleWithStats = dynamic_cast<const PdfModuleWithStats*>(pdfModule);
+  PdfModuleWithStats* pdfModuleWithStats = dynamic_cast<PdfModuleWithStats*>(pdfModule);
   if(pdfModuleWithStats) {
-    gStyle->SetOptStat(111111);
+    // using TFileService insteed
+    /*gStyle->SetOptStat(111111);
     TFile outfile("muCorrPdfs.root", "RECREATE");
     cout<<__FUNCTION__<<": "<<__LINE__<<" creating file "<<outfile.GetName()<<endl;
 
     outfile.cd();
-    pdfModuleWithStats->write();
+    //pdfModuleWithStats->write();*/
 
-    writePdfs(pdfModule, pdfModuleFileName);
+    if(edmParameterSet.exists("generatePdfs") && edmParameterSet.getParameter<bool>("generatePdfs")) {
+      pdfModuleWithStats->generateCoefficients();
+      writePdfs(pdfModule, pdfModuleFileName);
+    }
   }
 }
 /////////////////////////////////////////////////////
@@ -91,55 +95,60 @@ void L1TMuonBayesMuCorrelatorTrackProducer::beginRun(edm::Run const& run, edm::E
     cout<<"ptHw "<<setw(3)<<ptHw<<" = "<<setw(5)<<muCorrelatorConfig->hwPtToGev(ptHw)<<" GeV ptBin "<<muCorrelatorConfig->ptHwToPtBin(ptHw)<<endl;
   }*/
 
-  inputMaker = std::make_unique<MuCorrelatorInputMaker>(iSetup, muCorrelatorConfig);
+  inputMaker = std::make_unique<MuCorrelatorInputMaker>(edmParameterSet, iSetup, muCorrelatorConfig, muStubsInputTokens);
   ttTracksInputMaker = std::make_unique<TTTracksInputMaker>(edmParameterSet);;
 
   if(!muCorrelatorProcessor) {
     std::string pdfModuleType = "PdfModule"; //GoldenPatternParametrised GoldenPatternWithStat GoldenPattern
-    if(edmParameterSet.exists("pdfModuleType") ){
+    if(edmParameterSet.exists("pdfModuleType") ) {
       pdfModuleType = edmParameterSet.getParameter<std::string>("pdfModuleType");
     }
-    if(pdfModuleType == "PdfModule") {
-      if(edmParameterSet.exists("pdfModuleFileName") ) {//if we read the patterns directly from the xml, we do it only once, at the beginning of the first run, not every run
-        pdfModuleFileName = edmParameterSet.getParameter<edm::FileInPath>("pdfModuleFileName").fullPath();
 
-        //edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" reading the pdfModule from file "<<pdfModuleFileName<<std::endl;
-        auto pdfModule = readPdfs(pdfModuleFileName);
-        muCorrelatorProcessor =  std::make_unique<MuCorrelatorProcessor>(muCorrelatorConfig, std::move(pdfModule));
-        edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" muCorrelatorProcessor constructed from "<<pdfModuleFileName<<std::endl;
-      }
-      else {
-        auto pdfModule =  std::make_unique<PdfModule>(muCorrelatorConfig);
-        muCorrelatorProcessor =  std::make_unique<MuCorrelatorProcessor>(muCorrelatorConfig, std::move(pdfModule));
-        edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" muCorrelatorProcessor constructed with default PdfModule"<<std::endl;
-      }
+    PdfModule* pdfModule = nullptr;
+
+    if(pdfModuleType == "PdfModule") {
+      pdfModule = new PdfModule(muCorrelatorConfig);
+      edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" creating PdfModule for muCorrelatorProcessor"<<std::endl;
     }
     else if(pdfModuleType == "PdfModuleWithStats") {
-      auto pdfModule =  std::make_unique<PdfModuleWithStats>(muCorrelatorConfig);
-      muCorrelatorProcessor = std::make_unique<MuCorrelatorProcessor>(muCorrelatorConfig, std::move(pdfModule));
-      edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" muCorrelatorProcessor constructed with default PdfModuleWithStats"<<std::endl;
+      pdfModule = new PdfModuleWithStats(muCorrelatorConfig);
+      edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" creating PdfModuleWithStats for muCorrelatorProcessor"<<std::endl;
     }
     else {
       throw cms::Exception("L1TMuonBayesMuCorrelatorTrackProducer::beginRun: unknown pdfModuleType: " + pdfModuleType);
     }
+
+
+    if(edmParameterSet.exists("pdfModuleFileName") ) {//if we read the patterns directly from the xml, we do it only once, at the beginning of the first run, not every run
+      pdfModuleFileName = edmParameterSet.getParameter<edm::FileInPath>("pdfModuleFileName").fullPath();
+      edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" reading the pdfModule from file "<<pdfModuleFileName<<std::endl;
+      readPdfs(pdfModule, pdfModuleFileName);
+    }
+
+    std::unique_ptr<PdfModule> pdfModuleUniqPtr(pdfModule);
+
+    muCorrelatorProcessor = std::make_unique<MuCorrelatorProcessor>(muCorrelatorConfig, std::move(pdfModuleUniqPtr));
+    edm::LogImportant("L1TMuonBayesMuCorrelatorTrackProducer")<<" muCorrelatorProcessor constructed"<<std::endl;
+
   }
 }
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 void L1TMuonBayesMuCorrelatorTrackProducer::produce(edm::Event& iEvent, const edm::EventSetup& evSetup){
-  inputMaker->loadAndFilterDigis(iEvent, edmParameterSet);
+  inputMaker->loadAndFilterDigis(iEvent);
 
   std::unique_ptr<l1t::RegionalMuonCandBxCollection> candidates(new l1t::RegionalMuonCandBxCollection);
   candidates->setBXRange(bxRangeMin, bxRangeMax);
 
+  //std::cout<<"\n"<<__FUNCTION__<<":"<<__LINE__<<" iEvent "<<iEvent.id().event()<<" #####################################################################"<<endl;
   for(int bx = bxRangeMin; bx <= bxRangeMax; bx++) {
 
     auto muonStubsInput = inputMaker->MuCorrelatorInputMaker::buildInputForProcessor(0, l1t::tftype::bmtf, bx, bx + useStubsFromAdditionalBxs);
-
-    //std::cout<<"\n"<<__FUNCTION__<<":"<<__LINE__<<" iEvent "<<iEvent.id().event()<<" #####################################################################"<<endl;
     //std::cout<<muonStubsInput<<std::endl;
 
     auto ttTRacks = ttTracksInputMaker->loadTTTracks(iEvent, edmParameterSet, muCorrelatorConfig.get());
+
+    LogTrace("omtfEventPrintout")<<"\n\nEvent "<<iEvent.id().event()<<" muonStubsInput bx "<<bx<<": \n "<<muonStubsInput<<endl;
 
     //for(unsigned int iProcessor=0; iProcessor<m_OMTFConfig->nProcessors(); ++iProcessor)
     {
@@ -152,7 +161,7 @@ void L1TMuonBayesMuCorrelatorTrackProducer::produce(edm::Event& iEvent, const ed
       }
     }
 
-    edm::LogInfo("L1TMuonBayesMuCorrelatorTrackProducer") <<"MuCorr:  Number of candidates in BX="<<bx<<": "<<candidates->size(bx) << std::endl;;
+    //edm::LogInfo("L1TMuonBayesMuCorrelatorTrackProducer") <<"MuCorr:  Number of candidates in BX="<<bx<<": "<<candidates->size(bx) << std::endl;;
   }
 
   iEvent.put(std::move(candidates), "MuCorr");
@@ -160,20 +169,23 @@ void L1TMuonBayesMuCorrelatorTrackProducer::produce(edm::Event& iEvent, const ed
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 
-std::unique_ptr<PdfModule> L1TMuonBayesMuCorrelatorTrackProducer::readPdfs(std::string fileName) {
+void L1TMuonBayesMuCorrelatorTrackProducer::readPdfs(IPdfModule* pdfModule, std::string fileName) {
   // open the archive
   std::ifstream ifs(fileName);
   assert(ifs.good());
   boost::archive::xml_iarchive ia(ifs);
 
-  std::unique_ptr<PdfModule> pdfModule = std::make_unique<PdfModule>(muCorrelatorConfig);
-
   // write class instance to archive
-  PdfModule& pdfModuleRef = *pdfModule;
-  ia >> BOOST_SERIALIZATION_NVP(pdfModuleRef);
 
-  cout<<__FUNCTION__<<": "<<__LINE__<<" pdfModule->getCoefficients().size() "<<pdfModule->getCoefficients().size()<<endl;
-  return pdfModule;
+
+  PdfModule* pdfModuleImpl = dynamic_cast<PdfModule*>(pdfModule);
+  // write class instance to archive
+  if(pdfModuleImpl) {
+    PdfModule& pdfModuleRef = *pdfModuleImpl;
+    ia >> BOOST_SERIALIZATION_NVP(pdfModuleRef);
+
+    cout<<__FUNCTION__<<": "<<__LINE__<<" pdfModule->getCoefficients().size() "<<pdfModuleRef.getCoefficients().size()<<endl;
+  }
 }
 
 void L1TMuonBayesMuCorrelatorTrackProducer::writePdfs(const IPdfModule* pdfModule, std::string fileName) {

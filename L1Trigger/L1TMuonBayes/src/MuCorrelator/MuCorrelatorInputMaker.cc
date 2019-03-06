@@ -8,10 +8,18 @@
 #include <L1Trigger/L1TMuonBayes/interface/MuCorrelator/MuCorrelatorInputMaker.h>
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-MuCorrelatorInputMaker::MuCorrelatorInputMaker(const edm::EventSetup& es, MuCorrelatorConfigPtr config):
-  config(config), rpcClusterization(3, 2)
+MuCorrelatorInputMaker::MuCorrelatorInputMaker(const edm::ParameterSet& edmCfg, const edm::EventSetup& es, MuCorrelatorConfigPtr config, MuStubsInputTokens muStubsInputTokens):
+  config(config), rpcClusterization(3, 2), muStubsInputTokens(muStubsInputTokens)
 {
   angleConverter.checkAndUpdateGeometry(es, config.get() );
+
+  dropDTPrimitives = edmCfg.getParameter<bool>("dropDTPrimitives");
+  dropRPCPrimitives = edmCfg.getParameter<bool>("dropRPCPrimitives");
+  dropCSCPrimitives = edmCfg.getParameter<bool>("dropCSCPrimitives");
+
+  if(edmCfg.exists("minDtPhQuality") ) {
+    minDtPhQuality = edmCfg.getParameter<int>("minDtPhQuality");
+  }
 }
 
 MuCorrelatorInputMaker::~MuCorrelatorInputMaker() {
@@ -33,8 +41,10 @@ void MuCorrelatorInputMaker::addDTphiDigi(MuonStubPtrs2D& muonStubsInLayers, con
   // FIXME (MK): at least Ts2Tag selection is not correct! Check it
   //    if (digiIt.bxNum()!= 0 || digiIt.BxCnt()!= 0 || digiIt.Ts2Tag()!= 0 || digiIt.code()<4) continue;
 
-  //if (digi.code() != 4 && digi.code() != 5 && digi.code() != 6) return;
-  if (digi.code() != 2 && digi.code() != 3 && digi.code() != 4 && digi.code() != 5 && digi.code() != 6) return;
+  //if (digi.code() != 4 && digi.code() != 5 && digi.code() != 6) return; //TODO onluy for the pdf generation
+  //if (digi.code() != 2 && digi.code() != 3 && digi.code() != 4 && digi.code() != 5 && digi.code() != 6) return;
+  if(digi.code() ==  7 || digi.code() < minDtPhQuality) //7 is empty digi, TODO update if the definition of the quality is changed
+    return;
 
   unsigned int iLayer = getLayerNumber(detid);
 
@@ -126,10 +136,12 @@ void MuCorrelatorInputMaker::addCSCstubs(MuonStubPtrs2D& muonStubsInLayers, unsi
     stub.logicLayer = iLayer;
     stub.detId = rawid;
 
-    stub.phi = config->getProcScalePhiToRad(stub.phiHw);
-    stub.eta = config->hwEtaToEta(stub.etaHw);
+    //stub.phi = config->getProcScalePhiToRad(stub.phiHw);
+    //stub.eta = config->hwEtaToEta(stub.etaHw);
 
     addStub(muonStubsInLayers, iLayer, stub);
+
+    //cout<<__FUNCTION__<<":"<<__LINE__<<" adding CSC phi stub from chamber "<<detId<<" "<<stub<<endl;
   }
 
   { //adding eta stub
@@ -154,9 +166,11 @@ void MuCorrelatorInputMaker::addCSCstubs(MuonStubPtrs2D& muonStubsInLayers, unsi
     stub.detId = rawid;
 
     //stub.phi = config->getProcScalePhiToRad(stub.phiHw);
-    stub.eta = config->hwEtaToEta(stub.etaHw);
+    //stub.eta = config->hwEtaToEta(stub.etaHw);
 
     addStub(muonStubsInLayers, iLayer, stub);
+
+    //cout<<__FUNCTION__<<":"<<__LINE__<<" adding CSC eta stub from chamber "<<detId<<" "<<stub<<endl;
   }
 
 }
@@ -203,7 +217,7 @@ void MuCorrelatorInputMaker::addRPCstub(MuonStubPtrs2D& muonStubsInLayers, const
   //      if (cSize>2) flag |= 2;
   //      if (!outres) flag |= 1;
 
-  std::ostringstream str;
+/*  std::ostringstream str;
   str <<" RPC halfDigi "
       <<" begin: "<<cluster.firstStrip<<" end: "<<cluster.lastStrip
       <<" iPhi: "<<stub.phiHw
@@ -212,7 +226,7 @@ void MuCorrelatorInputMaker::addRPCstub(MuonStubPtrs2D& muonStubsInLayers, const
       //<<" out: " << outres
       <<std::endl;
 
-  edm::LogInfo("MuonStubMaker")<<str.str();
+  edm::LogInfo("MuonStubMaker")<<str.str();*/
 }
 
 ////////////////////////////////////////////
@@ -247,30 +261,42 @@ uint32_t MuCorrelatorInputMaker::getLayerNumber(const CSCDetId& detid, bool eta)
   if(eta)
     return (detid.station() -1)+ 3 + config->nPhiLayers() ;
 
-  return (detid.station() -1) + 8; //8 is DT layers number - two per station
+  if(detid.station() == 1 && (detid.ring() ==  1 || detid.ring() == 4) ){ //ME1/1 phi
+    return 8;
+  }
+
+  return (detid.station() -1) + 8 + 1; //8 is DT layers number - two per station + ME1/1
 }
 
 uint32_t MuCorrelatorInputMaker::getLayerNumber(const RPCDetId& detid) const {
   //TODO configure somehow from config?
-  if(detid.region() == 0) //barrel
-    return (detid.station() -1) + 8 + 4; //8 is DT layers number - two per station, 4 is CSC layer number
+  if(detid.region() == 0) { //barrel
+    uint32_t rpcLogLayer = 0;
+    if(detid.station() == 1)
+      rpcLogLayer = 0 + detid.layer() -1;
+    else if(detid.station() == 2)
+      rpcLogLayer = 2 + detid.layer() -1;
+    else //station 3 and 4
+      rpcLogLayer = detid.station() + 1;
 
+    //cout<<__FUNCTION__<<":"<<__LINE__<<" RPC detid "<<detid<<" rpcLogLayer "<<rpcLogLayer<<endl;
+    return (rpcLogLayer + 8 + 5); //8 is DT layers number - two per station, 5 is CSC layer number
+  }
   //endcap
-  return (detid.station() -1) + 8 + 4 + 6; //8 is DT layers number - two per station, 4 is CSC layer number, 6 is RPC barrel station number
+  return (detid.station() -1) + 8 + 5 + 6; //8 is DT layers number - two per station, 5 is CSC layer number, 6 is RPC barrel station number
 }
 
 
 
 
-void MuCorrelatorInputMaker::loadAndFilterDigis(const edm::Event& event, const edm::ParameterSet& edmCfg) {
+void MuCorrelatorInputMaker::loadAndFilterDigis(const edm::Event& event) {
   // Filter digis by dropping digis from selected (by cfg.py) subsystems
-  //TODO avoid calling getParameter every event by adding field to remember the input tags
-  if(!edmCfg.getParameter<bool>("dropDTPrimitives")){
-    event.getByLabel(edmCfg.getParameter<edm::InputTag>("srcDTPh"), dtPhDigis);
-    event.getByLabel(edmCfg.getParameter<edm::InputTag>("srcDTTh"), dtThDigis);
+  if(!dropDTPrimitives){
+    event.getByToken(muStubsInputTokens.inputTokenDTPh, dtPhDigis);
+    event.getByToken(muStubsInputTokens.inputTokenDTTh, dtThDigis);
   }
-  if(!edmCfg.getParameter<bool>("dropRPCPrimitives")) event.getByLabel(edmCfg.getParameter<edm::InputTag>("srcRPC"), rpcDigis);
-  if(!edmCfg.getParameter<bool>("dropCSCPrimitives")) event.getByLabel(edmCfg.getParameter<edm::InputTag>("srcCSC"), cscDigis);
+  if(!dropRPCPrimitives) event.getByToken(muStubsInputTokens.inputTokenRPC, rpcDigis);
+  if(!dropCSCPrimitives) event.getByToken(muStubsInputTokens.inputTokenCSC, cscDigis);
 }
 
 
