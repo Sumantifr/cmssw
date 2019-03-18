@@ -49,7 +49,7 @@ void OMTFProcessor<GoldenPatternType>::init(const edm::ParameterSet& edmCfg, edm
     string sorterType = edmCfg.getParameter<std::string>("sorterType");
     edm::LogImportant("OMTFReconstruction") << "OMTFProcessor constructed. sorterType: "<<sorterType<< std::endl;
     if(sorterType == "sorterWithThreshold") {
-      GoldenPatternResult::setFinalizeFunction(2);
+    GoldenPatternResult::setFinalizeFunction(2);
 
       typename OMTFSorterWithThreshold<GoldenPatternType>::Mode mode = OMTFSorterWithThreshold<GoldenPatternType>::bestGPByMaxGpProbability1;
       string modeStr = edmCfg.getParameter<std::string>("sorterWithThresholdMode");
@@ -62,7 +62,8 @@ void OMTFProcessor<GoldenPatternType>::init(const edm::ParameterSet& edmCfg, edm
     }
   }
   else*/
-    setSorter(new OMTFSorter<GoldenPatternType>()); //initialize with the default sorter
+  //GoldenPatternResult::setFinalizeFunction(4);
+  setSorter(new OMTFSorter<GoldenPatternType>()); //initialize with the default sorter
 
   if(edmCfg.exists("ghostBusterType") ) {
     if(edmCfg.getParameter<std::string>("ghostBusterType") == "GhostBusterPreferRefDt")

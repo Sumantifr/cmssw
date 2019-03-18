@@ -34,16 +34,16 @@ AlgoMuons::value_type OMTFSorter<GoldenPatternType>::sortRefHitResults(unsigned 
     if(bestGP == 0) {
       bestGP = itGP.get();
     }
-    else if(itGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() > bestGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() ){
-      bestGP = itGP.get();
-      //std::cout <<" sorter, byQual, now best is: "<<bestKey << " RefLayer "<<itKey.second.getRefLayer()<<" FiredLayerCn "<<itKey.second.getFiredLayerCnt()<<std::endl;
-    }
-    else if(itGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() == bestGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() ) {
-      if(itGP->getResults()[procIndx][iRefHit].getPdfSum() > bestGP->getResults()[procIndx][iRefHit].getPdfSum()) {
+    // else if(itGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() > bestGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() ){
+    //   bestGP = itGP.get();
+    //   //std::cout <<" sorter, byQual, now best is: "<<bestKey << " RefLayer "<<itKey.second.getRefLayer()<<" FiredLayerCn "<<itKey.second.getFiredLayerCnt()<<std::endl;
+    // }
+    // else if(itGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() == bestGP->getResults()[procIndx][iRefHit].getFiredLayerCnt() ) {
+    else if(itGP->getResults()[procIndx][iRefHit].getPdfSum() > bestGP->getResults()[procIndx][iRefHit].getPdfSum()) {
         //if the PdfWeigtSum is equal, we take the GP with the lower number, i.e. lower pt = check if this is ok for physics FIXME (KB)
         bestGP = itGP.get();
         //std::cout <<" sorter, byDisc, now best is: "<<bestKey << " "<<itKey.second.getRefLayer()<<" FiredLayerCn "<<itKey.second.getFiredLayerCnt()<< std::endl;
-      }
+	//}
     }
   }
   if(bestGP) {

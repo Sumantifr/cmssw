@@ -206,6 +206,66 @@ void GoldenPatternResult::finalise3() {
   //by default result becomes valid here, but can be overwritten later
 }
 
+
+void GoldenPatternResult::finalise4() {
+  pdfSum = 0.;
+  firedLayerCnt = 0;
+  for(unsigned int iLogicLayer=0; iLogicLayer < stubResults.size(); ++iLogicLayer) {
+    unsigned int connectedLayer = omtfConfig->getLogicToLogic().at(iLogicLayer);
+    //here we require that in case of the DT layers, both phi and phiB is fired
+    if(firedLayerBits & (1<<connectedLayer) ) {
+      if( firedLayerBits & (1<<iLogicLayer) ) {//now in the GoldenPattern::process1Layer1RefLayer the pdf bin 0 is returned when the layer is not fired, so this is 'if' is to assured that this pdf val is not added here
+	if ( stubResults[iLogicLayer].getMuonStub()->qualityHw == 2 || stubResults[iLogicLayer].getMuonStub()->qualityHw == 3){
+	  cout << "We have an uncorrelated hit" << endl;
+	  if (omtfConfig->getBendingLayers().count(iLogicLayer)){
+	    cout << "its a bending layer" << endl;
+	    continue;
+	  }
+	}
+        pdfSum += stubResults[iLogicLayer].getPdfVal();
+        if(!omtfConfig->getBendingLayers().count(iLogicLayer)) //in DT case, the phi and phiB layers are threaded as one, so the firedLayerCnt is increased only for the phi layer
+          firedLayerCnt++;
+      }
+    }
+    else {
+      firedLayerBits &= ~(1<<iLogicLayer);
+    }
+  }
+
+  if(firedLayerCnt < 3)
+    pdfSum = 0;
+
+  valid = true;
+  //by default result becomes valid here, but can be overwritten later
+}
+
+
+void GoldenPatternResult::finalise5() {
+  for(unsigned int iLogicLayer=0; iLogicLayer < stubResults.size(); ++iLogicLayer) {
+    unsigned int connectedLayer = omtfConfig->getLogicToLogic().at(iLogicLayer);
+    //here we require that in case of the DT layers, both phi and phiB is fired
+    if(firedLayerBits & (1<<connectedLayer) ) {
+      if( firedLayerBits & (1<<iLogicLayer) ) {//now in the GoldenPattern::process1Layer1RefLayer the pdf bin 0 is returned when the layer is not fired, so this is 'if' is to assured that this pdf val is not added here
+        pdfSum += stubResults[iLogicLayer].getPdfVal();
+
+        if (omtfConfig->fwVersion() <= 4) {
+          if(!omtfConfig->getBendingLayers().count(iLogicLayer)) //in DT case, the phi and phiB layers are threaded as one, so the firedLayerCnt is increased only for the phi layer
+            firedLayerCnt++;
+        }
+        else
+          firedLayerCnt++;
+      }
+    }
+    else {
+      firedLayerBits &= ~(1<<iLogicLayer);
+    }
+  }
+
+  valid = true;
+  //by default result becomes valid here, but can be overwritten later
+}
+
+
 /*void GoldenPatternResult::finalise2() {
   pdfSum = 1.;
   for(unsigned int iLogicLayer=0; iLogicLayer < pdfValues.size(); ++iLogicLayer) {
@@ -235,6 +295,10 @@ void GoldenPatternResult::finalise3() {
 }*/
 ////////////////////////////////////////////
 ////////////////////////////////////////////
+
+
+
+
 std::ostream & operator << (std::ostream &out, const GoldenPatternResult & gpResult) {
   unsigned int refLayerLogicNum = gpResult.omtfConfig->getRefToLogicNumber()[gpResult.getRefLayer()];
 

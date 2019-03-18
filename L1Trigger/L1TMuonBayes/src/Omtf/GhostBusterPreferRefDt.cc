@@ -21,16 +21,16 @@ AlgoMuons GhostBusterPreferRefDt::select(AlgoMuons muonsIN, int charge) {
   auto customLess = [&](const AlgoMuons::value_type& a, const AlgoMuons::value_type& b)->bool {
     int aRefLayerLogicNum = omtfConfig->getRefToLogicNumber()[a->getRefLayer()];
     int bRefLayerLogicNum = omtfConfig->getRefToLogicNumber()[b->getRefLayer()];
-    if(a->getQ() > b->getQ())
-      return false;
-    else if(a->getQ()==b->getQ() && aRefLayerLogicNum < bRefLayerLogicNum) {
+    // if(a->getQ() > b->getQ())
+    //   return false;
+    if(aRefLayerLogicNum < bRefLayerLogicNum) {
       return false;
     }
-    else if (a->getQ()==b->getQ() && aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() > b->getDisc() )
+    else if (aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() > b->getDisc() )
       return false;
-    else if (a->getQ()==b->getQ() && aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() == b->getDisc() && a->getPatternNumber() > b->getPatternNumber() )
+    else if (aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() == b->getDisc() && a->getPatternNumber() > b->getPatternNumber() )
       return false;
-    else if (a->getQ()==b->getQ() && aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() == b->getDisc() && a->getPatternNumber() == b->getPatternNumber() && a->getRefHitNumber() < b->getRefHitNumber())
+    else if (aRefLayerLogicNum == bRefLayerLogicNum && a->getDisc() == b->getDisc() && a->getPatternNumber() == b->getPatternNumber() && a->getRefHitNumber() < b->getRefHitNumber())
       return false;
     else
       return true;

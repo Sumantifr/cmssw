@@ -164,12 +164,15 @@ public:
   void set();
 
   void finalise() {
+    
     if(finalizeFunction == 1)
       finalise1();
     else if(finalizeFunction == 2)
       finalise2();
     else if(finalizeFunction == 3)
       finalise3();
+    else if(finalizeFunction == 4)
+      finalise4();
     else
       finalise0();
   }
@@ -182,6 +185,9 @@ public:
 
   //multiplication of PDF values instead of sum
   void finalise2();
+
+  //multiplication of PDF values instead of sum
+  void finalise4();
 
   //for patterns generation
   void finalise3();

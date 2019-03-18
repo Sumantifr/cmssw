@@ -46,7 +46,7 @@ public:
   //converts float timing to the int timing in the scale common for the muon detectors
   virtual int convertTiming(double timing) const;
 private:
-  unsigned int maxClusterSize = 3;
+  unsigned int maxClusterSize = 4;
   unsigned int maxClusterCnt = 2;
 };
 
