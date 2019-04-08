@@ -31,7 +31,9 @@ namespace pat {
 
     float computeMva(const pat::Muon& imuon,
                      const reco::Vertex& vertex,
-                     const reco::JetTagCollection& bTags,
+                     const reco::JetTagCollection& bTagsb,
+		     const reco::JetTagCollection& bTagsbb,
+		     const reco::JetTagCollection& bTagslepb,
                      float& jetPtRatio,
                      float& jetPtRel,
                      const reco::JetCorrector* correctorL1=nullptr,

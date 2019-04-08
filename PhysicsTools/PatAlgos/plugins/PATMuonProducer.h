@@ -208,7 +208,9 @@ namespace pat {
     bool computeSoftMuonMVA_;
     bool recomputeBasicSelectors_;
     bool mvaUseJec_;
-    edm::EDGetTokenT<reco::JetTagCollection> mvaBTagCollectionTag_;
+    edm::EDGetTokenT<reco::JetTagCollection> mvaBTagCollectionTagb_;
+    edm::EDGetTokenT<reco::JetTagCollection> mvaBTagCollectionTagbb_;
+    edm::EDGetTokenT<reco::JetTagCollection> mvaBTagCollectionTaglepb_;
     edm::EDGetTokenT<reco::JetCorrector> mvaL1Corrector_;
     edm::EDGetTokenT<reco::JetCorrector> mvaL1L2L3ResCorrector_;
     edm::EDGetTokenT<double> rho_;

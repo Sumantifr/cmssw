@@ -169,7 +169,9 @@ PATMuonProducer::PATMuonProducer(const edm::ParameterSet & iConfig, PATMuonHeavy
 
   if (computeMuonMVA_) {
     // pfCombinedInclusiveSecondaryVertexV2BJetTags
-    mvaBTagCollectionTag_  = consumes<reco::JetTagCollection>(iConfig.getParameter<edm::InputTag>("mvaJetTag"));
+    mvaBTagCollectionTagb_     = consumes<reco::JetTagCollection>(iConfig.getParameter<edm::InputTag>("mvaJetTag_b"));
+    mvaBTagCollectionTagbb_    = consumes<reco::JetTagCollection>(iConfig.getParameter<edm::InputTag>("mvaJetTag_bb"));
+    mvaBTagCollectionTaglepb_  = consumes<reco::JetTagCollection>(iConfig.getParameter<edm::InputTag>("mvaJetTag_lepb"));
     mvaL1Corrector_        = consumes<reco::JetCorrector>(iConfig.getParameter<edm::InputTag>("mvaL1Corrector"));
     mvaL1L2L3ResCorrector_ = consumes<reco::JetCorrector>(iConfig.getParameter<edm::InputTag>("mvaL1L2L3ResCorrector"));
     rho_                   = consumes<double>(iConfig.getParameter<edm::InputTag>("rho"));
@@ -343,11 +345,15 @@ void PATMuonProducer::produce(edm::Event & iEvent, const edm::EventSetup & iSetu
   }
 
   // inputs for muon mva
-  edm::Handle<reco::JetTagCollection> mvaBTagCollectionTag;
+  edm::Handle<reco::JetTagCollection> mvaBTagCollectionTagb;
+  edm::Handle<reco::JetTagCollection> mvaBTagCollectionTagbb;
+  edm::Handle<reco::JetTagCollection> mvaBTagCollectionTaglepb;
   edm::Handle<reco::JetCorrector> mvaL1Corrector;
   edm::Handle<reco::JetCorrector> mvaL1L2L3ResCorrector;
   if (computeMuonMVA_) {
-    iEvent.getByToken(mvaBTagCollectionTag_,mvaBTagCollectionTag);
+    iEvent.getByToken(mvaBTagCollectionTagb_,mvaBTagCollectionTagb);
+    iEvent.getByToken(mvaBTagCollectionTagbb_,mvaBTagCollectionTagbb);
+    iEvent.getByToken(mvaBTagCollectionTaglepb_,mvaBTagCollectionTaglepb);
     iEvent.getByToken(mvaL1Corrector_,mvaL1Corrector);
     iEvent.getByToken(mvaL1L2L3ResCorrector_,mvaL1L2L3ResCorrector);
   }
@@ -663,7 +669,9 @@ void PATMuonProducer::produce(edm::Event & iEvent, const edm::EventSetup & iSetu
       if (mvaUseJec_)
         mva = globalCache()->muonMvaEstimator()->computeMva(muon,
                                                             primaryVertex,
-                                                            *(mvaBTagCollectionTag.product()),
+                                                            *(mvaBTagCollectionTagb.product()),
+							    *(mvaBTagCollectionTagbb.product()),
+							    *(mvaBTagCollectionTaglepb.product()),
                                                             jetPtRatio,
                                                             jetPtRel,
                                                             &*mvaL1Corrector,
@@ -671,7 +679,9 @@ void PATMuonProducer::produce(edm::Event & iEvent, const edm::EventSetup & iSetu
       else
 	mva = globalCache()->muonMvaEstimator()->computeMva(muon,
                                                             primaryVertex,
-                                                            *(mvaBTagCollectionTag.product()),
+                                                            *(mvaBTagCollectionTagb.product()),
+							    *(mvaBTagCollectionTagbb.product()),
+							    *(mvaBTagCollectionTaglepb.product()),
                                                             jetPtRatio,
                                                             jetPtRel);
 
@@ -700,6 +710,8 @@ void PATMuonProducer::produce(edm::Event & iEvent, const edm::EventSetup & iSetu
 	muon.setSelector(reco::Muon::MvaLoose,  muon.mvaValue()>-0.60);
 	muon.setSelector(reco::Muon::MvaMedium, muon.mvaValue()>-0.20);
 	muon.setSelector(reco::Muon::MvaTight,  muon.mvaValue()> 0.15);
+	muon.setSelector(reco::Muon::MvaVTight,  muon.mvaValue()> 0.45);
+	muon.setSelector(reco::Muon::MvaVVTight,  muon.mvaValue()> 0.9);
       }
     }
 

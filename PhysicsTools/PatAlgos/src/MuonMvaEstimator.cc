@@ -30,10 +30,10 @@ namespace {
       kMiniRelIsoCharged,
       kMiniRelIsoNeutral,
       kJetPtRel,
+      kJetDeepJet,
       kJetPtRatio,
-      kJetBTagCSV,
-      kSip,
       kLog_abs_dxyBS,
+      kSip,
       kLog_abs_dzPV,
       kSegmentCompatibility,
       kLast
@@ -52,12 +52,14 @@ namespace {
 }
 
 float MuonMvaEstimator::computeMva(const pat::Muon& muon,
-				  const reco::Vertex& vertex,
-				  const reco::JetTagCollection& bTags,
-                                  float& jetPtRatio,
-                                  float& jetPtRel,
-				  const reco::JetCorrector* correctorL1,
-				  const reco::JetCorrector* correctorL1L2L3Res) const
+				   const reco::Vertex& vertex,
+				   const reco::JetTagCollection& bTagsb,
+				   const reco::JetTagCollection& bTagsbb,
+				   const reco::JetTagCollection& bTagslepb,
+				   float& jetPtRatio,
+				   float& jetPtRel,
+				   const reco::JetCorrector* correctorL1,
+				   const reco::JetCorrector* correctorL1L2L3Res) const
 {
   float var[kLast]{};
 
@@ -90,11 +92,11 @@ float MuonMvaEstimator::computeMva(const pat::Muon& muon,
 
   var[kJetPtRatio] = 1./(1+dbCorrectedRelIso);
   var[kJetPtRel]   = 0;
-  var[kJetBTagCSV] = -999;
+  var[kJetDeepJet] = -999;
   var[kJetNDauCharged] = -1;
 
 
-  for (const auto& tagI: bTags){
+  for (const auto& tagI: bTagsb){
     // for each muon with the lepton 
     double dr = deltaR(*(tagI.first), muon);
     if(dr > minDr) continue;  
@@ -109,7 +111,19 @@ float MuonMvaEstimator::computeMva(const pat::Muon& muon,
     }
 
     // Get b-jet info
-    var[kJetBTagCSV] = tagI.second;
+    var[kJetDeepJet] = tagI.second;
+    for (const auto& tagIbb : bTagsbb){
+      if (deltaR(*(tagI.first), *(tagIbb.first)) < 0.3){
+	var[kJetDeepJet] += tagIbb.second;
+	break;
+      }
+    }
+    for (const auto& tagIlepb : bTagslepb){
+      if (deltaR(*(tagI.first), *(tagIlepb.first)) < 0.3){
+	var[kJetDeepJet] += tagIlepb.second;
+	break;
+      }
+    }
     var[kJetNDauCharged] = 0;
     for (auto jet: tagI.first->getJetConstituentsQuick()){
       const reco::PFCandidate *pfcand = dynamic_cast<const reco::PFCandidate*>(jet);
@@ -144,7 +158,7 @@ float MuonMvaEstimator::computeMva(const pat::Muon& muon,
   }
 
   if (var[kJetPtRatio] > 1.5) var[kJetPtRatio] = 1.5;
-  if (var[kJetBTagCSV] < 0) var[kJetBTagCSV] = 0;
+  if (var[kJetDeepJet] < 0) var[kJetDeepJet] = 0;
   jetPtRatio = var[kJetPtRatio];
   jetPtRel = var[kJetPtRel];
   return gbrForest_->GetClassifier(var);

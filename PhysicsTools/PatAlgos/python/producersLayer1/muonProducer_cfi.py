@@ -106,11 +106,13 @@ patMuons = cms.EDProducer("PATMuonProducer",
     # Depends on MiniIsolation, so only works in miniaod
     # Don't forget to set flags properly in miniAOD_tools.py                      
     computeMuonMVA = cms.bool(False),
-    mvaTrainingFile = cms.FileInPath("RecoMuon/MuonIdentification/data/mu_BDTG_Run2017.weights.xml"),
+    mvaTrainingFile = cms.FileInPath("RecoMuon/MuonIdentification/data/MVA_Legacy_deepFlav_together_mu_2017_v17_BDTG.weights.xml"),
     recomputeBasicSelectors = cms.bool(True),
     mvaUseJec = cms.bool(True),
     mvaDrMax = cms.double(0.4),
-    mvaJetTag = cms.InputTag("pfCombinedInclusiveSecondaryVertexV2BJetTags"),
+    mvaJetTag_b = cms.InputTag("pfDeepFlavourJetTags", "probb"),
+    mvaJetTag_bb = cms.InputTag("pfDeepFlavourJetTags", "probbb"),
+    mvaJetTag_lepb = cms.InputTag("pfDeepFlavourJetTags", "problepb"),
     mvaL1Corrector = cms.InputTag("ak4PFCHSL1FastjetCorrector"),
     mvaL1L2L3ResCorrector = cms.InputTag("ak4PFCHSL1FastL2L3Corrector"),
     rho = cms.InputTag("fixedGridRhoFastjetCentralNeutral"),
@@ -129,7 +131,7 @@ patMuons = cms.EDProducer("PATMuonProducer",
 )
 
 
-
+eras.run2_miniAOD_80XLegacy.toModify(patMuons, mvaTrainingFile=cms.FileInPath("RecoMuon/MuonIdentification/data/MVA_Legacy_deepFlav_together_mu_2016_BDTG.weights.xml"))
 
 
 
