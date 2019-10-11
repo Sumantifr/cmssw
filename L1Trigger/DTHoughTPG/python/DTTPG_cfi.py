@@ -4,4 +4,5 @@ import FWCore.ParameterSet.Config as cms
 #from L1TriggerConfig.DTTPGConfigProducers.L1DTTPGConfig_cff import *
 
 DTTPG = cms.EDProducer( "DTTPG",
+                        dtDigiLabel = cms.InputTag("simMuonDTDigis"),
 )

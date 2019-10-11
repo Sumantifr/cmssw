@@ -55,8 +55,7 @@ DTTPG::DTTPG( const edm::ParameterSet& aConfig )
   LUTfindWireZeroIdx[36] = LUTfindWireZeroIdx[40] = 4;
   LUTfindWireZeroIdx[38] = LUTfindWireZeroIdx[42] = 5;
 
-  edm::InputTag dtDigiTag( "simMuonDTDigis", "" );
-  dtDigisToken = consumes< DTDigiCollection >( dtDigiTag );
+  dtDigisToken = consumes< DTDigiCollection >( aConfig.getParameter<edm::InputTag>("dtDigiLabel") );
 }
 
 DTTPG::~DTTPG(){}
