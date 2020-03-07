@@ -92,6 +92,13 @@ class BatchManager:
                     print("remote directory must start with /pnfs/psi.ch to send to the tier3 at PSI")
                     print(self.remoteOutputDir_, "not valid")
                     sys.exit(1)
+            elif self.remoteOutputDir_.startswith("/eos/user/"):
+                if os.path.isdir(self.remoteOutputDir_):
+                    if len(os.listdir(self.remoteOutputDir_)):
+                        raise RuntimeError("Remote directory %s exists and is not emtpy"%self.remoteOutputDir_)
+                else:
+                    self.mkdir( self.remoteOutputDir_)
+                self.remoteOutputDir_ = "root://eosuser.cern.ch/" + self.remoteOutputDir_
             else: # assume EOS
                 if not castortools.isLFN( self.remoteOutputDir_ ):
                     print('When providing an output directory, you must give its LFN, starting by /store. You gave:')
