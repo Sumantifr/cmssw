@@ -23,6 +23,7 @@
 #include "DataFormats/PatCandidates/interface/GenericParticle.h"
 #include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
+#include "DataFormats/PatCandidates/interface/GeneralTrack.h"
 
 #include "PhysicsTools/PatAlgos/plugins/PATJetSelector.h"
 
@@ -80,6 +81,8 @@ namespace pat {
 
   typedef SingleObjectSelector<pat::IsolatedTrackCollection, StringCutObjectSelector<pat::IsolatedTrack> >
       IsoTrackSelector;
+  typedef SingleObjectSelector<pat::GeneralTrackCollection, StringCutObjectSelector<pat::GeneralTrack> >
+      GeneralTrackSelector;
 
   typedef ObjectCountFilter<pat::MuonCollection, StringCutObjectSelector<pat::Muon> >::type MuonRefPatCount;
 
