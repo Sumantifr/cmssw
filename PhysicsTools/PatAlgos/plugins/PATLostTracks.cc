@@ -24,6 +24,7 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/Common/interface/Association.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 
 namespace {
   bool passesQuality(const reco::Track& trk,const std::vector<reco::TrackBase::TrackQuality>& allowedQuals){
@@ -53,12 +54,14 @@ namespace pat {
     };
     bool passTrkCuts(const reco::Track& tr)const;
     void addPackedCandidate(std::vector<pat::PackedCandidate>& cands,
-			    const reco::TrackRef& trk,
-			    const reco::VertexRef& pvSlimmed,
-			    const reco::VertexRefProd& pvSlimmedColl,
-			    const reco::Vertex& pvOrig,
-			    const TrkStatus trkStatus)const;
-      
+                            const reco::TrackRef& trk,
+                            const reco::VertexRef& pvSlimmed,
+                            const reco::VertexRefProd& pvSlimmedColl,
+                            const reco::Vertex& pvOrig,
+                            const TrkStatus trkStatus,
+			    edm::Handle<reco::MuonCollection> muons
+			    ) const;
+
   private:
     const edm::EDGetTokenT<reco::PFCandidateCollection>    cands_;
     const edm::EDGetTokenT<edm::Association<pat::PackedCandidateCollection> > map_;
@@ -75,28 +78,33 @@ namespace pat {
     const int covarianceVersion_;
     const int covarianceSchema_;
     std::vector<reco::TrackBase::TrackQuality> qualsToAutoAccept_;
+    const edm::EDGetTokenT<reco::MuonCollection>  muons_;
+    StringCutObjectSelector<reco::Track,false> passThroughCut_; 
   };
-}
+}  // namespace pat
 
-pat::PATLostTracks::PATLostTracks(const edm::ParameterSet& iConfig) :
-  cands_(consumes<reco::PFCandidateCollection>(iConfig.getParameter<edm::InputTag>("inputCandidates"))),
-  map_(consumes<edm::Association<pat::PackedCandidateCollection> >(iConfig.getParameter<edm::InputTag>("packedPFCandidates"))),
-  tracks_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTracks"))),
-  vertices_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("secondaryVertices"))),
-  kshorts_(consumes<reco::VertexCompositeCandidateCollection>(iConfig.getParameter<edm::InputTag>("kshorts"))),
-  lambdas_(consumes<reco::VertexCompositeCandidateCollection>(iConfig.getParameter<edm::InputTag>("lambdas"))),
-  pv_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("primaryVertices"))),
-  pvOrigs_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("originalVertices"))),
-  minPt_(iConfig.getParameter<double>("minPt")),
-  minHits_(iConfig.getParameter<uint32_t>("minHits")),
-  minPixelHits_(iConfig.getParameter<uint32_t>("minPixelHits")) ,
-  minPtToStoreProps_(iConfig.getParameter<double>("minPtToStoreProps")),
-  covarianceVersion_(iConfig.getParameter<int >("covarianceVersion")),
-  covarianceSchema_(iConfig.getParameter<int >("covarianceSchema"))
+pat::PATLostTracks::PATLostTracks(const edm::ParameterSet& iConfig)
+    : cands_(consumes<reco::PFCandidateCollection>(iConfig.getParameter<edm::InputTag>("inputCandidates"))),
+      map_(consumes<edm::Association<pat::PackedCandidateCollection>>(
+          iConfig.getParameter<edm::InputTag>("packedPFCandidates"))),
+      tracks_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("inputTracks"))),
+      vertices_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("secondaryVertices"))),
+      kshorts_(consumes<reco::VertexCompositeCandidateCollection>(iConfig.getParameter<edm::InputTag>("kshorts"))),
+      lambdas_(consumes<reco::VertexCompositeCandidateCollection>(iConfig.getParameter<edm::InputTag>("lambdas"))),
+      pv_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("primaryVertices"))),
+      pvOrigs_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("originalVertices"))),
+      minPt_(iConfig.getParameter<double>("minPt")),
+      minHits_(iConfig.getParameter<uint32_t>("minHits")),
+      minPixelHits_(iConfig.getParameter<uint32_t>("minPixelHits")),
+      minPtToStoreProps_(iConfig.getParameter<double>("minPtToStoreProps")),
+      covarianceVersion_(iConfig.getParameter<int>("covarianceVersion")),
+      covarianceSchema_(iConfig.getParameter<int>("covarianceSchema")),
+      muons_(consumes<reco::MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
+      passThroughCut_(iConfig.getParameter<std::string>("passThroughCut"))
+{
+  std::vector<std::string> trkQuals(iConfig.getParameter<std::vector<std::string>>("qualsToAutoAccept"));
+  std::transform(trkQuals.begin(), trkQuals.end(), std::back_inserter(qualsToAutoAccept_), reco::TrackBase::qualityByName);
 
-{ 
-  std::vector<std::string> trkQuals(iConfig.getParameter<std::vector<std::string> >("qualsToAutoAccept"));
-  std::transform(trkQuals.begin(),trkQuals.end(),std::back_inserter(qualsToAutoAccept_),reco::TrackBase::qualityByName);
   
   if(std::find(qualsToAutoAccept_.begin(),qualsToAutoAccept_.end(),reco::TrackBase::undefQuality)!=qualsToAutoAccept_.end()){
     std::ostringstream msg;
@@ -126,45 +134,48 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
     edm::Handle<reco::VertexCollection> vertices;
     iEvent.getByToken( vertices_, vertices );
 
-    edm::Handle<reco::VertexCompositeCandidateCollection> kshorts;
-    iEvent.getByToken( kshorts_, kshorts );
-    edm::Handle<reco::VertexCompositeCandidateCollection> lambdas;
-    iEvent.getByToken( lambdas_, lambdas );
+  edm::Handle<reco::MuonCollection> muons;
+  iEvent.getByToken(muons_, muons);
 
-    edm::Handle<reco::VertexCollection> pvs;
-    iEvent.getByToken( pv_, pvs );
-    reco::VertexRef pv(pvs.id());
-    reco::VertexRefProd pvRefProd(pvs);
-    if (!pvs->empty()) {
-        pv = reco::VertexRef(pvs, 0);
-    }
-    edm::Handle<reco::VertexCollection> pvOrigs;
-    iEvent.getByToken( pvOrigs_, pvOrigs );
-    const reco::Vertex & pvOrig = (*pvOrigs)[0];
+  edm::Handle<reco::VertexCompositeCandidateCollection> kshorts;
+  iEvent.getByToken(kshorts_, kshorts);
+  edm::Handle<reco::VertexCompositeCandidateCollection> lambdas;
+  iEvent.getByToken(lambdas_, lambdas);
 
-    auto outPtrTrks = std::make_unique<std::vector<reco::Track>>();
-    auto outPtrTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
-    auto outPtrEleTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
+  edm::Handle<reco::VertexCollection> pvs;
+  iEvent.getByToken(pv_, pvs);
+  reco::VertexRef pv(pvs.id());
+  reco::VertexRefProd pvRefProd(pvs);
+  if (!pvs->empty()) {
+    pv = reco::VertexRef(pvs, 0);
+  }
+  edm::Handle<reco::VertexCollection> pvOrigs;
+  iEvent.getByToken(pvOrigs_, pvOrigs);
+  const reco::Vertex& pvOrig = (*pvOrigs)[0];
+
+  auto outPtrTrks = std::make_unique<std::vector<reco::Track>>();
+  auto outPtrTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
+  auto outPtrEleTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
   
-    std::vector<TrkStatus> trkStatus(tracks->size(),TrkStatus::NOTUSED);
-    //Mark all tracks used in candidates	
-    //check if packed candidates are storing the tracks by seeing if number of hits >0 	  
-    //currently we dont use that information though
-    //electrons will never store their track (they store the GSF track)
-    for(unsigned int ic=0, nc = cands->size(); ic < nc; ++ic) {
-        edm::Ref<reco::PFCandidateCollection> r(cands,ic);
-        const reco::PFCandidate &cand=(*cands)[ic]; 
-	if(cand.charge() && cand.trackRef().isNonnull() && cand.trackRef().id() == tracks.id() ) { 
-	  
-	  if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;	  
-	  else if(cand.pdgId()==-11) trkStatus[cand.trackRef().key()]=TrkStatus::PFPOSITRON;
-	  else if((*pf2pc)[r]->numberOfHits() > 0) trkStatus[cand.trackRef().key()]=TrkStatus::PFCAND; 
-	  else trkStatus[cand.trackRef().key()]=TrkStatus::PFCANDNOTRKPROPS; 
-	}
+  std::vector<TrkStatus> trkStatus(tracks->size(),TrkStatus::NOTUSED);
+  //Mark all tracks used in candidates	
+  //check if packed candidates are storing the tracks by seeing if number of hits >0 	  
+  //currently we dont use that information though
+  //electrons will never store their track (they store the GSF track)
+  for(unsigned int ic=0, nc = cands->size(); ic < nc; ++ic) {
+    edm::Ref<reco::PFCandidateCollection> r(cands,ic);
+    const reco::PFCandidate &cand=(*cands)[ic]; 
+    if(cand.charge() && cand.trackRef().isNonnull() && cand.trackRef().id() == tracks.id() ) { 
+      
+      if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;	  
+      else if(cand.pdgId()==-11) trkStatus[cand.trackRef().key()]=TrkStatus::PFPOSITRON;
+      else if((*pf2pc)[r]->numberOfHits() > 0) trkStatus[cand.trackRef().key()]=TrkStatus::PFCAND; 
+      else trkStatus[cand.trackRef().key()]=TrkStatus::PFCANDNOTRKPROPS; 
     }
+  }
         
-    //Mark all tracks used in secondary vertices
-    for(const auto& secVert : *vertices){
+  //Mark all tracks used in secondary vertices
+  for(const auto& secVert : *vertices){
         for(auto trkIt = secVert.tracks_begin();trkIt!=secVert.tracks_end();trkIt++){
 	    if(trkStatus[trkIt->key()]==TrkStatus::NOTUSED)  trkStatus[trkIt->key()]=TrkStatus::VTX;
 	}
@@ -180,6 +191,22 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
 	    size_t key= (dynamic_cast<const reco::RecoChargedCandidate*>(v0.daughter(dIdx)))->track().key();
 	    if(trkStatus[key]==TrkStatus::NOTUSED)  trkStatus[key]=TrkStatus::VTX;
 	}
+  }
+  std::vector<int> mapping(tracks->size(), -1);
+  int lostTrkIndx = 0;
+  for (unsigned int trkIndx = 0; trkIndx < tracks->size(); trkIndx++) {
+    reco::TrackRef trk(tracks, trkIndx);
+    if (trkStatus[trkIndx] == TrkStatus::VTX || (trkStatus[trkIndx] == TrkStatus::NOTUSED && passTrkCuts(*trk))) {
+      outPtrTrks->emplace_back(*trk);
+      addPackedCandidate(*outPtrTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
+
+      //for creating the reco::Track -> pat::PackedCandidate map
+      //not done for the lostTrack:eleTracks collection
+      mapping[trkIndx] = lostTrkIndx;
+      lostTrkIndx++;
+    } else if ((trkStatus[trkIndx] == TrkStatus::PFELECTRON || trkStatus[trkIndx] == TrkStatus::PFPOSITRON) &&
+               passTrkCuts(*trk)) {
+      addPackedCandidate(*outPtrEleTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
     }
     std::vector<int> mapping(tracks->size(),-1);  
     int lostTrkIndx=0;
@@ -220,38 +247,47 @@ bool pat::PATLostTracks::passTrkCuts(const reco::Track& tr)const
                              tr.hitPattern().numberOfValidPixelHits() >= minPixelHits_;
     const bool passTrkQual = passesQuality(tr,qualsToAutoAccept_);
 
-    return passTrkHits || passTrkQual;
+  return passTrkHits || passTrkQual || passThroughCut_(tr) ;
 }
 
 void pat::PATLostTracks::addPackedCandidate(std::vector<pat::PackedCandidate>& cands,
-					    const reco::TrackRef& trk,
-					    const reco::VertexRef& pvSlimmed,
-					    const reco::VertexRefProd& pvSlimmedColl,
-					    const reco::Vertex& pvOrig,
-					    const pat::PATLostTracks::TrkStatus trkStatus)const
-{
-    const float mass = 0.13957018;
-    
-    int id=211*trk->charge();
-    if(trkStatus==TrkStatus::PFELECTRON) id=11;
-    else if(trkStatus==TrkStatus::PFPOSITRON) id=-11; 
-    
-    reco::Candidate::PolarLorentzVector p4(trk->pt(),trk->eta(),trk->phi(),mass);
-    cands.emplace_back(pat::PackedCandidate(p4,trk->vertex(),
-					    trk->pt(),trk->eta(),trk->phi(),
-					    id,pvSlimmedColl,pvSlimmed.key()));
- 
-   if (trk->quality(reco::TrackBase::highPurity))
-       cands.back().setTrackHighPurity(true);
-    else
-       cands.back().setTrackHighPurity(false);
-              
-    if(trk->pt()>minPtToStoreProps_ || trkStatus==TrkStatus::VTX) cands.back().setTrackProperties(*trk,covarianceSchema_,covarianceVersion_);
-    if(pvOrig.trackWeight(trk) > 0.5) {
-         cands.back().setAssociationQuality(pat::PackedCandidate::UsedInFitTight);
-    }
-}
+                                            const reco::TrackRef& trk,
+                                            const reco::VertexRef& pvSlimmed,
+                                            const reco::VertexRefProd& pvSlimmedColl,
+                                            const reco::Vertex& pvOrig,
+                                            const pat::PATLostTracks::TrkStatus trkStatus,
+					    edm::Handle<reco::MuonCollection> muons
+					    ) const {
+  const float mass = 0.13957018;
 
+  int id = 211 * trk->charge();
+  if (trkStatus == TrkStatus::PFELECTRON)
+    id = 11;
+  else if (trkStatus == TrkStatus::PFPOSITRON)
+    id = -11;
+
+  // assign the proper pdgId for tracks that are reconstructed as a muon
+  for (auto& mu : *muons){
+    if (reco::TrackRef(mu.innerTrack()) == trk){
+      id = -13 * trk->charge();
+      break;
+    }
+  }
+  
+
+  reco::Candidate::PolarLorentzVector p4(trk->pt(), trk->eta(), trk->phi(), mass);
+  cands.emplace_back(pat::PackedCandidate(p4, trk->vertex(), trk->pt(), trk->eta(), trk->phi(), id, pvSlimmedColl, pvSlimmed.key()));
+
+  if (trk->quality(reco::TrackBase::highPurity))
+    cands.back().setTrackHighPurity(true);
+  else
+    cands.back().setTrackHighPurity(false);
+              
+  if(trk->pt()>minPtToStoreProps_ || trkStatus==TrkStatus::VTX) cands.back().setTrackProperties(*trk,covarianceSchema_,covarianceVersion_);
+  if(pvOrig.trackWeight(trk) > 0.5) {
+    cands.back().setAssociationQuality(pat::PackedCandidate::UsedInFitTight);
+  }
+}
 
 
 using pat::PATLostTracks;
