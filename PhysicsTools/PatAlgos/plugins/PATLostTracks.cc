@@ -132,102 +132,82 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
     edm::Handle<reco::VertexCollection> vertices;
     iEvent.getByToken( vertices_, vertices );
 
-  edm::Handle<reco::MuonCollection> muons;
-  iEvent.getByToken(muons_, muons);
-
-  edm::Handle<reco::VertexCompositeCandidateCollection> kshorts;
-  iEvent.getByToken(kshorts_, kshorts);
-  edm::Handle<reco::VertexCompositeCandidateCollection> lambdas;
-  iEvent.getByToken(lambdas_, lambdas);
-
-  edm::Handle<reco::VertexCollection> pvs;
-  iEvent.getByToken(pv_, pvs);
-  reco::VertexRef pv(pvs.id());
-  reco::VertexRefProd pvRefProd(pvs);
-  if (!pvs->empty()) {
-    pv = reco::VertexRef(pvs, 0);
-  }
-  edm::Handle<reco::VertexCollection> pvOrigs;
-  iEvent.getByToken(pvOrigs_, pvOrigs);
-  const reco::Vertex& pvOrig = (*pvOrigs)[0];
-
-  auto outPtrTrks = std::make_unique<std::vector<reco::Track>>();
-  auto outPtrTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
-  auto outPtrEleTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
-  
-  std::vector<TrkStatus> trkStatus(tracks->size(),TrkStatus::NOTUSED);
-  //Mark all tracks used in candidates	
-  //check if packed candidates are storing the tracks by seeing if number of hits >0 	  
-  //currently we dont use that information though
-  //electrons will never store their track (they store the GSF track)
-  for(unsigned int ic=0, nc = cands->size(); ic < nc; ++ic) {
-    edm::Ref<reco::PFCandidateCollection> r(cands,ic);
-    const reco::PFCandidate &cand=(*cands)[ic]; 
-    if(cand.charge() && cand.trackRef().isNonnull() && cand.trackRef().id() == tracks.id() ) { 
-      
-      if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;	  
-      else if(cand.pdgId()==-11) trkStatus[cand.trackRef().key()]=TrkStatus::PFPOSITRON;
-      else if((*pf2pc)[r]->numberOfHits() > 0) trkStatus[cand.trackRef().key()]=TrkStatus::PFCAND; 
-      else trkStatus[cand.trackRef().key()]=TrkStatus::PFCANDNOTRKPROPS; 
+    edm::Handle<reco::MuonCollection> muons;
+    iEvent.getByToken(muons_, muons);
+    
+    edm::Handle<reco::VertexCompositeCandidateCollection> kshorts;
+    iEvent.getByToken(kshorts_, kshorts);
+    edm::Handle<reco::VertexCompositeCandidateCollection> lambdas;
+    iEvent.getByToken(lambdas_, lambdas);
+    
+    edm::Handle<reco::VertexCollection> pvs;
+    iEvent.getByToken(pv_, pvs);
+    reco::VertexRef pv(pvs.id());
+    reco::VertexRefProd pvRefProd(pvs);
+    if (!pvs->empty()) {
+      pv = reco::VertexRef(pvs, 0);
     }
-  }
-        
-  //Mark all tracks used in secondary vertices
-  for(const auto& secVert : *vertices){
-        for(auto trkIt = secVert.tracks_begin();trkIt!=secVert.tracks_end();trkIt++){
-	    if(trkStatus[trkIt->key()]==TrkStatus::NOTUSED)  trkStatus[trkIt->key()]=TrkStatus::VTX;
-	}
+    edm::Handle<reco::VertexCollection> pvOrigs;
+    iEvent.getByToken(pvOrigs_, pvOrigs);
+    const reco::Vertex& pvOrig = (*pvOrigs)[0];
+    
+    auto outPtrTrks = std::make_unique<std::vector<reco::Track>>();
+    auto outPtrTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
+    auto outPtrEleTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
+    
+    std::vector<TrkStatus> trkStatus(tracks->size(),TrkStatus::NOTUSED);
+    //Mark all tracks used in candidates	
+    //check if packed candidates are storing the tracks by seeing if number of hits >0 	  
+    //currently we dont use that information though
+    //electrons will never store their track (they store the GSF track)
+    for(unsigned int ic=0, nc = cands->size(); ic < nc; ++ic) {
+      edm::Ref<reco::PFCandidateCollection> r(cands,ic);
+      const reco::PFCandidate &cand=(*cands)[ic]; 
+      if(cand.charge() && cand.trackRef().isNonnull() && cand.trackRef().id() == tracks.id() ) { 
+      
+        if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;	  
+        else if(cand.pdgId()==-11) trkStatus[cand.trackRef().key()]=TrkStatus::PFPOSITRON;
+        else if((*pf2pc)[r]->numberOfHits() > 0) trkStatus[cand.trackRef().key()]=TrkStatus::PFCAND; 
+        else trkStatus[cand.trackRef().key()]=TrkStatus::PFCANDNOTRKPROPS; 
+      }
+    }
+    
+    //Mark all tracks used in secondary vertices
+    for(const auto& secVert : *vertices){
+      for(auto trkIt = secVert.tracks_begin();trkIt!=secVert.tracks_end();trkIt++){
+        if(trkStatus[trkIt->key()]==TrkStatus::NOTUSED)  trkStatus[trkIt->key()]=TrkStatus::VTX;
+      }
     }
     for(const auto& v0 : *kshorts){
-        for(size_t dIdx=0;dIdx<v0.numberOfDaughters(); dIdx++){
-	    size_t key= (dynamic_cast<const reco::RecoChargedCandidate*>(v0.daughter(dIdx)))->track().key();
-	    if(trkStatus[key]==TrkStatus::NOTUSED)  trkStatus[key]=TrkStatus::VTX;
-	}
+      for(size_t dIdx=0;dIdx<v0.numberOfDaughters(); dIdx++){
+        size_t key= (dynamic_cast<const reco::RecoChargedCandidate*>(v0.daughter(dIdx)))->track().key();
+        if(trkStatus[key]==TrkStatus::NOTUSED)  trkStatus[key]=TrkStatus::VTX;
+      }
     }
     for(const auto& v0 : *lambdas){
-        for(size_t dIdx=0;dIdx<v0.numberOfDaughters(); dIdx++){
-	    size_t key= (dynamic_cast<const reco::RecoChargedCandidate*>(v0.daughter(dIdx)))->track().key();
-	    if(trkStatus[key]==TrkStatus::NOTUSED)  trkStatus[key]=TrkStatus::VTX;
-	}
-  }
-  std::vector<int> mapping(tracks->size(), -1);
-  int lostTrkIndx = 0;
-  for (unsigned int trkIndx = 0; trkIndx < tracks->size(); trkIndx++) {
-    reco::TrackRef trk(tracks, trkIndx);
-    if (trkStatus[trkIndx] == TrkStatus::VTX || (trkStatus[trkIndx] == TrkStatus::NOTUSED && passTrkCuts(*trk))) {
-      outPtrTrks->emplace_back(*trk);
-      addPackedCandidate(*outPtrTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
-
-      //for creating the reco::Track -> pat::PackedCandidate map
-      //not done for the lostTrack:eleTracks collection
-      mapping[trkIndx] = lostTrkIndx;
-      lostTrkIndx++;
-    } else if ((trkStatus[trkIndx] == TrkStatus::PFELECTRON || trkStatus[trkIndx] == TrkStatus::PFPOSITRON) &&
-               passTrkCuts(*trk)) {
-      addPackedCandidate(*outPtrEleTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
+      for(size_t dIdx=0;dIdx<v0.numberOfDaughters(); dIdx++){
+        size_t key= (dynamic_cast<const reco::RecoChargedCandidate*>(v0.daughter(dIdx)))->track().key();
+        if(trkStatus[key]==TrkStatus::NOTUSED)  trkStatus[key]=TrkStatus::VTX;
+      }
     }
-    std::vector<int> mapping(tracks->size(),-1);  
-    int lostTrkIndx=0;
-    for(unsigned int trkIndx=0; trkIndx < tracks->size(); trkIndx++){
-        reco::TrackRef trk(tracks,trkIndx);
-	if( trkStatus[trkIndx] == TrkStatus::VTX || 
-	   (trkStatus[trkIndx]==TrkStatus::NOTUSED && passTrkCuts(*trk)) ) { 
-	
-	    outPtrTrks->emplace_back(*trk);
-	    addPackedCandidate(*outPtrTrksAsCands,trk,pv,pvRefProd,pvOrig,trkStatus[trkIndx]);
-	
-	    //for creating the reco::Track -> pat::PackedCandidate map
-	    //not done for the lostTrack:eleTracks collection
-	    mapping[trkIndx]=lostTrkIndx;
-	    lostTrkIndx++;
-	}else if( (trkStatus[trkIndx]==TrkStatus::PFELECTRON || trkStatus[trkIndx]==TrkStatus::PFPOSITRON ) 
-		  && passTrkCuts(*trk) ) {
-   	    addPackedCandidate(*outPtrEleTrksAsCands,trk,pv,pvRefProd,pvOrig,trkStatus[trkIndx]);
-
-	
-      }	      
-    } 
-    
+    std::vector<int> mapping(tracks->size(), -1);
+    int lostTrkIndx = 0;
+    for (unsigned int trkIndx = 0; trkIndx < tracks->size(); trkIndx++) {
+      reco::TrackRef trk(tracks, trkIndx);
+      if (trkStatus[trkIndx] == TrkStatus::VTX || (trkStatus[trkIndx] == TrkStatus::NOTUSED && passTrkCuts(*trk))) {
+        outPtrTrks->emplace_back(*trk);
+        addPackedCandidate(*outPtrTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
+        
+        //for creating the reco::Track -> pat::PackedCandidate map
+        //not done for the lostTrack:eleTracks collection
+        mapping[trkIndx] = lostTrkIndx;
+        lostTrkIndx++;
+      } else if ((trkStatus[trkIndx] == TrkStatus::PFELECTRON || trkStatus[trkIndx] == TrkStatus::PFPOSITRON) &&
+                 passTrkCuts(*trk)) {
+        addPackedCandidate(*outPtrEleTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
+      }
+      std::vector<int> mapping(tracks->size(),-1);  
+    }	      
     iEvent.put(std::move(outPtrTrks));
     iEvent.put(std::move(outPtrEleTrksAsCands),"eleTracks");
     edm::OrphanHandle<pat::PackedCandidateCollection> oh = iEvent.put(std::move(outPtrTrksAsCands));
@@ -237,7 +217,7 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
     tk2pcFiller.fill() ; 
     iEvent.put(std::move(tk2pc));   
 }
-
+    
 bool pat::PATLostTracks::passTrkCuts(const reco::Track& tr)const
 {
     const bool passTrkHits = tr.pt() > minPt_ && 
