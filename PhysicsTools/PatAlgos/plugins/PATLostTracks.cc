@@ -156,8 +156,8 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
     auto outPtrEleTrksAsCands = std::make_unique<std::vector<pat::PackedCandidate>>();
     
     std::vector<TrkStatus> trkStatus(tracks->size(),TrkStatus::NOTUSED);
-    //Mark all tracks used in candidates	
-    //check if packed candidates are storing the tracks by seeing if number of hits >0 	  
+    //Mark all tracks used in candidates        
+    //check if packed candidates are storing the tracks by seeing if number of hits >0    
     //currently we dont use that information though
     //electrons will never store their track (they store the GSF track)
     for(unsigned int ic=0, nc = cands->size(); ic < nc; ++ic) {
@@ -165,7 +165,7 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
       const reco::PFCandidate &cand=(*cands)[ic]; 
       if(cand.charge() && cand.trackRef().isNonnull() && cand.trackRef().id() == tracks.id() ) { 
       
-        if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;	  
+        if(cand.pdgId()==11) trkStatus[cand.trackRef().key()]=TrkStatus::PFELECTRON;      
         else if(cand.pdgId()==-11) trkStatus[cand.trackRef().key()]=TrkStatus::PFPOSITRON;
         else if((*pf2pc)[r]->numberOfHits() > 0) trkStatus[cand.trackRef().key()]=TrkStatus::PFCAND; 
         else trkStatus[cand.trackRef().key()]=TrkStatus::PFCANDNOTRKPROPS; 
@@ -207,7 +207,7 @@ void pat::PATLostTracks::produce(edm::StreamID, edm::Event& iEvent, const edm::E
         addPackedCandidate(*outPtrEleTrksAsCands, trk, pv, pvRefProd, pvOrig, trkStatus[trkIndx], muons);
       }
       std::vector<int> mapping(tracks->size(),-1);  
-    }	      
+    }         
     iEvent.put(std::move(outPtrTrks));
     iEvent.put(std::move(outPtrEleTrksAsCands),"eleTracks");
     edm::OrphanHandle<pat::PackedCandidateCollection> oh = iEvent.put(std::move(outPtrTrksAsCands));
