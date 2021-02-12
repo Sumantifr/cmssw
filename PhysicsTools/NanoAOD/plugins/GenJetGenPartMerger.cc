@@ -95,7 +95,6 @@ GenJetGenPartMerger::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      merged->push_back( reco::GenJet(jet));
      reco::GenJetRef jetRef(jetHandle, ijet);
      hasTauAncValues.push_back((*tauAncHandle)[jetRef]);
-     std::cout << "We have one electron" << std::endl;
    }
    
    for (auto& part : *partHandle){
@@ -105,7 +104,6 @@ GenJetGenPartMerger::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      jet.setCharge(part.charge());
      merged->push_back( jet );
      hasTauAncValues.push_back(false);
-     std::cout << "We have one photon" << std::endl;
    }
 
 

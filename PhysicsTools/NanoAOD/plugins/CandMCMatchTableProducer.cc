@@ -8,6 +8,7 @@
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/JetReco/interface/GenJetCollection.h"
+#include <DataFormats/Math/interface/deltaR.h>
 
 #include <vector>
 #include <iostream>
@@ -47,6 +48,7 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
 	    if ( type_ == MElectron){
 	      candMapDressedLep_ = consumes<edm::Association<reco::GenJetCollection>>(params.getParameter<edm::InputTag>("mcMapDressedLep"));
 	      mapTauAnc_         = consumes<edm::ValueMap<bool>>(params.getParameter<edm::InputTag>("mapTauAnc"));
+	      genPartsToken_     = consumes<reco::GenParticleCollection>(params.getParameter<edm::InputTag>("genparticles"));
 	    }
 
         }
@@ -71,9 +73,11 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
 
 	    edm::Handle<edm::Association<reco::GenJetCollection>> mapDressedLep;
 	    edm::Handle<edm::ValueMap<bool>> mapTauAnc;
+	    edm::Handle<reco::GenParticleCollection> genParts;
 	    if ( type_ == MElectron ){
 	      iEvent.getByToken(candMapDressedLep_, mapDressedLep);
 	      iEvent.getByToken(mapTauAnc_, mapTauAnc);
+	      iEvent.getByToken(genPartsToken_, genParts);
 	    }
 
             std::vector<int> key(ncand, -1), flav(ncand, 0);
@@ -104,14 +108,32 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
                         else flav[i] = getParentHadronFlag(match); // 3 = light, 4 = charm, 5 = b
                         break;
                     case MElectron:
-		      std::cout << "Checking electron with pt = " << cands->ptrAt(i)->pt() << std::endl;
                         if (matchDressedLep.isNonnull()){
-			  std::cout << "its matched to a gen dressed lepton with pt,eta,phi = " << matchDressedLep->pt() << " " <<  matchDressedLep->phi() << std::endl;
+
 			   if (matchDressedLep->pdgId() == 22)
 			      flav[i]=22;
 			   else
 			      flav[i]=(hasTauAnc) ? 15 : 1;
-		        }
+
+			   // now check with genpart corresponds to the matchDressedlepton, picking the electron with the highest pt
+			   float minpt = 0;
+			   for (auto & consti :  matchDressedLep->getGenConstituents()){
+			     if (abs(consti->pdgId()) != 11) continue;
+			     if (consti->pt() < minpt) continue;
+			     minpt=consti->pt();
+			     for (unsigned int gen=0; gen < genParts->size(); ++gen){
+			       auto genp=genParts->at(gen);
+			       if (abs(genp.pdgId()) != 11) continue;
+			       if (deltaR( genp, *consti) <0.01 && abs(genp.pt()-consti->pt())/consti->pt() < 0.01){ // they are the same objects
+				 key[i]=gen;
+			       }
+			     }
+			   }
+			   if (key[i] < 0){
+			     std::cout << "Warning, electron not in genparts..." << std::endl;
+			   }
+
+			}
 			else if (!match.isNonnull())
 			  flav[i]=0;
 			else if (match->isPromptFinalState()) flav[i] = (match->pdgId() == 22 ? 22 : 1); // prompt electron or photon
@@ -173,6 +195,7 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
             desc.addOptional<edm::InputTag>("mcMapVisTau")->setComment("as mcMap, but pointing to the visible gen taus (only if objType == Tau)");
             desc.addOptional<edm::InputTag>("mcMapDressedLep")->setComment("as mcMap, but pointing to gen dressed leptons (only if objType == Electrons)");
             desc.addOptional<edm::InputTag>("mapTauAnc")->setComment("Value map of matched gen electrons containing info on the tau ancestry");
+	    desc.addOptional<edm::InputTag>("genparticles")->setComment("Collection of genParticles to be stored.");
             descriptions.add("candMcMatchTable", desc);
         }
 
@@ -183,6 +206,7 @@ class CandMCMatchTableProducer : public edm::global::EDProducer<> {
         edm::EDGetTokenT<edm::Association<reco::GenParticleCollection>> candMapVisTau_;
         edm::EDGetTokenT<edm::Association<reco::GenJetCollection>> candMapDressedLep_;
         edm::EDGetTokenT<edm::ValueMap<bool>> mapTauAnc_        ;
+        edm::EDGetTokenT<reco::GenParticleCollection> genPartsToken_;
         enum MatchType { MMuon, MElectron, MTau, MPhoton, MOther } type_;
         std::string flavDoc_;
 };
