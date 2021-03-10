@@ -51,6 +51,7 @@ class IsoValueMapProducer : public edm::global::EDProducer<> {
     if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) || typeid(T) == typeid(pat::IsolatedTrack)) {
       produces<edm::ValueMap<float>>("miniIsoChg");
       produces<edm::ValueMap<float>>("miniIsoAll");
+      produces<edm::ValueMap<float>>("rho");
       ea_miniiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath()));
       rho_miniiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_MiniIso"));
     }
@@ -137,9 +138,10 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const{
 
   unsigned int nInput = src->size();
   
-  std::vector<float> miniIsoChg, miniIsoAll;
+  std::vector<float> miniIsoChg, miniIsoAll ,rhos;
   miniIsoChg.reserve(nInput);
   miniIsoAll.reserve(nInput);
+  rhos.reserve(nInput);
  
   for (const auto & obj : *src) { 
     auto iso = obj.miniPFIsolation();
@@ -152,6 +154,7 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const{
     float scale = relative_ ? 1.0/obj.pt() : 1;
     miniIsoChg.push_back(scale*chg);
     miniIsoAll.push_back(scale*(chg+std::max(0.0,neu+pho-(*rho)*ea)));
+    rhos.push_back(*rho);
   }
   
   std::unique_ptr<edm::ValueMap<float>> miniIsoChgV(new edm::ValueMap<float>());
@@ -162,9 +165,14 @@ IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const{
   edm::ValueMap<float>::Filler fillerAll(*miniIsoAllV);
   fillerAll.insert(src,miniIsoAll.begin(),miniIsoAll.end());
   fillerAll.fill();
+  std::unique_ptr<edm::ValueMap<float>> RhoV(new edm::ValueMap<float>());
+  edm::ValueMap<float>::Filler fillerRho(*RhoV);
+  fillerRho.insert(src,rhos.begin(),rhos.end());
+  fillerRho.fill();
 
   iEvent.put(std::move(miniIsoChgV),"miniIsoChg");
   iEvent.put(std::move(miniIsoAllV),"miniIsoAll");
+  iEvent.put(std::move(RhoV),"rho");
 }
 
 template<>
