@@ -272,6 +272,7 @@ public:
     produces<nanoaod::FlatTable>("LHEScale");
     produces<nanoaod::FlatTable>("LHEPdf");
     produces<nanoaod::FlatTable>("LHEReweighting");
+    produces<nanoaod::FlatTable>("LHEEFT");
     produces<nanoaod::FlatTable>("LHENamed");
     produces<nanoaod::FlatTable>("PS");
     produces<nanoaod::MergeableCounterTable, edm::Transition::EndRun>();
@@ -310,7 +311,7 @@ public:
     bool getLHEweightsFromGenInfo = !model_label.empty();
 
     // tables for LHE weights, may not be filled
-    std::unique_ptr<nanoaod::FlatTable> lheScaleTab, lhePdfTab, lheRwgtTab, lheNamedTab;
+    std::unique_ptr<nanoaod::FlatTable> lheScaleTab, lhePdfTab, lheRwgtTab, lheEFTTab, lheNamedTab;
     std::unique_ptr<nanoaod::FlatTable> genPSTab;
 
     edm::Handle<LHEEventProduct> lheInfo;
@@ -339,6 +340,7 @@ public:
                           lhePdfTab,
                           lheRwgtTab,
                           lheNamedTab,
+			  lheEFTTab,
                           genPSTab);
     } else if (getLHEweightsFromGenInfo) {
       fillLHEPdfWeightTablesFromGenInfo(
@@ -363,6 +365,7 @@ public:
     iEvent.put(std::move(lhePdfTab), "LHEPdf");
     iEvent.put(std::move(lheRwgtTab), "LHEReweighting");
     iEvent.put(std::move(lheNamedTab), "LHENamed");
+    iEvent.put(std::move(lheEFTTab), "LHEEFT");
     iEvent.put(std::move(genPSTab), "PS");
   }
 
@@ -376,6 +379,7 @@ public:
                            std::unique_ptr<nanoaod::FlatTable>& outPdf,
                            std::unique_ptr<nanoaod::FlatTable>& outRwgt,
                            std::unique_ptr<nanoaod::FlatTable>& outNamed,
+			   std::unique_ptr<nanoaod::FlatTable>& outEFT,
                            std::unique_ptr<nanoaod::FlatTable>& outPS) const {
     bool lheDebug = debug_.exchange(
         false);  // make sure only the first thread dumps out this (even if may still be mixed up with other output, but nevermind)
@@ -386,8 +390,18 @@ public:
 
     double w0 = lheProd.originalXWGTUP();
 
+    int nEFT = 0;
+    for (auto & weight : lheProd.weights()){
+      if (weight.id.rfind("EFTrwgt",0)==0){
+	nEFT++;
+      }
+    }
     std::vector<double> wScale(scaleWeightIDs.size(), 1), wPDF(pdfWeightIDs.size(), 1), wRwgt(rwgtWeightIDs.size(), 1),
-        wNamed(namedWeightIDs_.size(), 1);
+      wNamed(namedWeightIDs_.size(), 1), wEFT(nEFT, 1);
+
+    std::vector<double> wEFTstr(nEFT, 1);
+    std::vector<std::string> wEFT_names(nEFT);
+
     for (auto& weight : lheProd.weights()) {
       if (lheDebug)
         printf("Weight  %+9.5f   rel %+9.5f   for id %s\n", weight.wgt, weight.wgt / w0, weight.id.c_str());
@@ -399,6 +413,13 @@ public:
       auto mPDF = std::find(pdfWeightIDs.begin(), pdfWeightIDs.end(), weight.id);
       if (mPDF != pdfWeightIDs.end())
         wPDF[mPDF - pdfWeightIDs.begin()] = weight.wgt / w0;
+
+      if (weight.id.rfind("EFTrwgt",0)==0){
+	std::string s_id = std::regex_replace(weight.id, std::regex("EFTrwgt[^0-9]*([0-9]+).*"), std::string("$1"));
+        int i_id = std::stoi(s_id);
+        wEFT[i_id] = weight.wgt/w0;
+	wEFT_names[i_id]=weight.id;
+      }
 
       auto mRwgt = std::find(rwgtWeightIDs.begin(), rwgtWeightIDs.end(), weight.id);
       if (mRwgt != rwgtWeightIDs.end())
@@ -427,6 +448,10 @@ public:
     outRwgt = std::make_unique<nanoaod::FlatTable>(wRwgt.size(), "LHEReweightingWeight", false);
     outRwgt->addColumn<float>(
         "", wRwgt, weightChoice->rwgtWeightDoc, nanoaod::FlatTable::FloatColumn, lheWeightPrecision_);
+
+    outEFT.reset(new nanoaod::FlatTable(nEFT, "EFTweights", false));
+    outEFT->addColumn<float>("", wEFT, "", nanoaod::FlatTable::FloatColumn, lheWeightPrecision_);
+    //outEFT->addColumn<std::string>("name", wEFT_names, "", nanoaod::FlatTable::FloatColumn, lheWeightPrecision_);
 
     outNamed = std::make_unique<nanoaod::FlatTable>(1, "LHEWeight", true);
     outNamed->addColumnValue<float>("originalXWGTUP",
