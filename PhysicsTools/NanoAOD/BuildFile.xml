@@ -4,6 +4,7 @@
 <use   name="DataFormats/StdDictionaries"/>
 <use   name="DataFormats/Candidate"/>
 <use   name="DataFormats/NanoAOD"/>
+<use   name="DataFormats/PatCandidates"/>
 <use   name="boost"/>
 <use   name="fastjet"/>
 <use   name="fastjet-contrib"/>

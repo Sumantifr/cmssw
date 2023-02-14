@@ -42,6 +42,9 @@ slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
         ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
         jetNDauChargedMVASel = cms.InputTag("ptRatioRelForMu:jetNDauChargedMVASel"),
      ),
+    userInts = cms.PSet(
+        leptonIndex = cms.InputTag("ptRatioRelForMu:leptonIndex"),
+     ),
      userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
      ),
@@ -116,6 +119,28 @@ fsrTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         )
     )
 
+selectedPFCandidateTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag("ptRatioRelForMu","selectedPFCandidates"),
+    cut = cms.string(""), #we should not filter on cross linked collections
+    name = cms.string("SelectedPFMuons"),
+    doc  = cms.string("PF candidates that go with some PF muon"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table for the pfs
+    variables = cms.PSet(CandVars,
+        # dz = Var("dB('PVDZ')",float,doc="dz (with sign) wrt first PV, in cm",precision=10),
+        # dzErr = Var("abs(edB('PVDZ'))",float,doc="dz uncertainty, in cm",precision=6),
+        # dxybs = Var("dB('BS2D')",float,doc="dxy (with sign) wrt the beam spot, in cm",precision=10),
+        # dxy = Var("dB('PV2D')",float,doc="dxy (with sign) wrt first PV, in cm",precision=10),
+        # dxyErr = Var("edB('PV2D')",float,doc="dxy uncertainty, in cm",precision=6),
+        # ip3d = Var("abs(dB('PV3D'))",float,doc="3D impact parameter wrt first PV, in cm",precision=10),
+        # sip3d = Var("abs(dB('PV3D')/edB('PV3D'))",float,doc="3D impact parameter significance wrt first PV",precision=10),
+                     ),
+    externalVariables = cms.PSet(
+        leptonIndexInJet = ExtVar(cms.InputTag("ptRatioRelForMu:leptonIndexInJet"),int, doc="Index of lepton for matching"),
+    )                                    
+)
+        
+
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
     cut = cms.string(""), #we should not filter on cross linked collections
@@ -169,6 +194,7 @@ muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         triggerIdLoose = Var("passed('TriggerIdLoose')",bool,doc="TriggerIdLoose ID"), 
         inTimeMuon = Var("passed('InTimeMuon')",bool,doc="inTimeMuon ID"),
         jetNDauCharged = Var("?userCand('jetForLepJetVar').isNonnull()?userFloat('jetNDauChargedMVASel'):0", "uint8", doc="number of charged daughters of the closest jet"),
+                         leptonIndex  = Var("userInt('leptonIndex')", "uint8", doc="Index to match with the PF candidates")
         ),
     externalVariables = cms.PSet(
         mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
@@ -208,5 +234,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable + selectedPFCandidateTable)
 

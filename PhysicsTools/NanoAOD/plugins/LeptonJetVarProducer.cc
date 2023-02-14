@@ -54,8 +54,11 @@ class LeptonJetVarProducer : public edm::global::EDProducer<> {
   {
     produces<edm::ValueMap<float>>("ptRatio");
     produces<edm::ValueMap<float>>("ptRel");
+    produces<edm::ValueMap<int>>("leptonIndex");
+    produces<edm::ValueMap<int>>("leptonIndexInJet");
     produces<edm::ValueMap<float>>("jetNDauChargedMVASel");
     produces<edm::ValueMap<reco::CandidatePtr>>("jetForLepJetVar");
+    produces<pat::PackedCandidateCollection>("selectedPFCandidates");
   }
   ~LeptonJetVarProducer() override {};
 
@@ -64,7 +67,7 @@ class LeptonJetVarProducer : public edm::global::EDProducer<> {
    private:
   void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
-  std::tuple<float,float,float> calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm::Ptr<pat::Jet> jet, const reco::Vertex &vtx) const;
+  std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>> calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm::Ptr<pat::Jet> jet, const reco::Vertex &vtx) const;
 
       // ----------member data ---------------------------
 
@@ -105,11 +108,15 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   std::vector<float> ptRatio(nLep,-1);
   std::vector<float> ptRel(nLep,-1);
   std::vector<float> jetNDauChargedMVASel(nLep,0);
+  std::vector<int>   leptonIndex(nLep,-1);
+  std::vector<int>   leptonIndexInJet;
   std::vector<reco::CandidatePtr> jetForLepJetVar(nLep,reco::CandidatePtr());
+  std::unique_ptr<pat::PackedCandidateCollection> selectedPFCandidates( new pat::PackedCandidateCollection());
 
   const auto & pv = (*srcVtx)[0];
 
   for (unsigned int il = 0; il<nLep; il++){
+    leptonIndex[il]=il;
     for (unsigned int ij = 0; ij<nJet; ij++){
       auto lep = srcLep->ptrAt(il);
       auto jet = srcJet->ptrAt(ij);
@@ -118,11 +125,23 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
 	  ptRatio[il] = std::get<0>(res);
 	  ptRel[il] = std::get<1>(res);
 	  jetNDauChargedMVASel[il] = std::get<2>(res);
+	  for (auto& cand : std::get<3>(res)){ 
+	    selectedPFCandidates->push_back(*cand);
+	    leptonIndexInJet.push_back(il);
+	  }
 	  jetForLepJetVar[il] = jet;
 	  break; // take leading jet with shared source candidates
 	}
     }
   }
+  std::unique_ptr<edm::ValueMap<int>> leptonIndexV(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler fillerLeptonIndex(*leptonIndexV);
+  fillerLeptonIndex.insert(srcLep,leptonIndex.begin(),leptonIndex.end());
+  fillerLeptonIndex.fill();
+  iEvent.put(std::move(leptonIndexV),"leptonIndex");
+
+
+
 
   std::unique_ptr<edm::ValueMap<float>> ptRatioV(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler fillerRatio(*ptRatioV);
@@ -148,17 +167,32 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   fillerjetForLepJetVar.fill();
   iEvent.put(std::move(jetForLepJetVarV),"jetForLepJetVar");
 
+  auto selPF=iEvent.put(std::move(selectedPFCandidates),"selectedPFCandidates");
+
+  std::unique_ptr<edm::ValueMap<int>> leptonIndexInJetV(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler fillerLeptonIndexInJet(*leptonIndexInJetV);
+  fillerLeptonIndexInJet.insert(selPF,leptonIndexInJet.begin(),leptonIndexInJet.end());
+  fillerLeptonIndexInJet.fill();
+  iEvent.put(std::move(leptonIndexInJetV),"leptonIndexInJet");
+
 
 }
 
 template <typename T>
-std::tuple<float,float,float>
+std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>>
 LeptonJetVarProducer<T>::calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm::Ptr<pat::Jet> jet, const reco::Vertex &vtx) const {
  
   auto rawp4 = jet->correctedP4("Uncorrected");
   auto lepp4 = lep->p4();
 
-  if ((rawp4-lepp4).R()<1e-4) return std::tuple<float,float,float>(1.0,0.0,0.0);
+  std::vector<const pat::PackedCandidate*> pfcandidates;
+  for(const auto _d : jet->daughterPtrVector()) {
+    const auto d = dynamic_cast<const pat::PackedCandidate*>(_d.get());
+    pfcandidates.push_back( d );
+  }
+  
+  std::cout << "Checking muon with pt " << lep->pt() << " has jet " << jet->pt() << " with n daughters "<< jet->daughterPtrVector().size() << std::endl;
+  if ((rawp4-lepp4).R()<1e-4) return std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>>(1.0,0.0,0.0,pfcandidates);
 
   auto l1corrFactor = jet->jecFactor("L1FastJet")/jet->jecFactor("Uncorrected");
 
@@ -167,6 +201,7 @@ LeptonJetVarProducer<T>::calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm:
   auto ptrel = lepp4.Vect().Cross((jetp4-lepp4).Vect().Unit()).R();
 
   unsigned int jndau = 0;
+
   for(const auto _d : jet->daughterPtrVector()) {
     const auto d = dynamic_cast<const pat::PackedCandidate*>(_d.get());
     if (d->charge()==0) continue;
@@ -183,7 +218,7 @@ LeptonJetVarProducer<T>::calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm:
        ) jndau++;
   }
 
-  return std::tuple<float,float,float>(ptratio,ptrel,float(jndau));
+  return std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>>(ptratio,ptrel,float(jndau),pfcandidates);
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
