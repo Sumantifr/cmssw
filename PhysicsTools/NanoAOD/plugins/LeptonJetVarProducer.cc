@@ -156,7 +156,6 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
           selectedSVs->push_back( sv );
           leptonIndexInSV.push_back(il);
         }
-	delete thejet;
 
         auto res = calculatePtRatioRel(lep,jet,pv);
         ptRatio[il] = std::get<0>(res);
@@ -169,6 +168,7 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
         jetForLepJetVar[il] = jet;
         break; // take leading jet with shared source candidates
       }
+      delete thejet;
     }
   }
   std::unique_ptr<edm::ValueMap<int>> leptonIndexV(new edm::ValueMap<int>());
