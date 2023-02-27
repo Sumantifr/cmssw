@@ -43,6 +43,17 @@
 //
 // class declaration
 //
+std::vector<reco::VertexCompositePtrCandidate> matchOneToVertices(pat::Jet& item,
+                        std::vector<reco::VertexCompositePtrCandidate>& itemsVtx) {
+  std::vector<reco::VertexCompositePtrCandidate> overlaps;
+  for (auto& v : itemsVtx) {
+    if (matchByCommonSourceCandidatePtr(item, v)) {
+      overlaps.push_back(v);
+    }
+  }
+  return overlaps;
+}
+
 
 template <typename T>
 class LeptonJetVarProducer : public edm::global::EDProducer<> {
@@ -50,15 +61,19 @@ class LeptonJetVarProducer : public edm::global::EDProducer<> {
   explicit LeptonJetVarProducer(const edm::ParameterSet &iConfig):
     srcJet_(consumes<edm::View<pat::Jet>>(iConfig.getParameter<edm::InputTag>("srcJet"))),
     srcLep_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("srcLep"))),
-    srcVtx_(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("srcVtx")))
+    srcVtx_(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("srcVtx"))),
+    verticesTag_(iConfig.getParameter<edm::InputTag>("vertices"))
   {
     produces<edm::ValueMap<float>>("ptRatio");
     produces<edm::ValueMap<float>>("ptRel");
     produces<edm::ValueMap<int>>("leptonIndex");
     produces<edm::ValueMap<int>>("leptonIndexInJet");
+    produces<edm::ValueMap<int>>("leptonIndexInSV");
     produces<edm::ValueMap<float>>("jetNDauChargedMVASel");
     produces<edm::ValueMap<reco::CandidatePtr>>("jetForLepJetVar");
     produces<pat::PackedCandidateCollection>("selectedPFCandidates");
+    produces<reco::VertexCompositePtrCandidateCollection>("selectedSVs");
+    vertices_ = consumes<edm::View<reco::VertexCompositePtrCandidate>>(verticesTag_);
   }
   ~LeptonJetVarProducer() override {};
 
@@ -74,6 +89,8 @@ class LeptonJetVarProducer : public edm::global::EDProducer<> {
   edm::EDGetTokenT<edm::View<pat::Jet>> srcJet_;
   edm::EDGetTokenT<edm::View<T>> srcLep_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> srcVtx_;
+  edm::InputTag verticesTag_;
+  edm::EDGetTokenT<edm::View<reco::VertexCompositePtrCandidate>> vertices_;
 };
 
 //
@@ -105,13 +122,25 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   unsigned int nJet = srcJet->size();
   unsigned int nLep = srcLep->size();
 
+  auto vertices = std::make_unique<std::vector<reco::VertexCompositePtrCandidate>>();
+  if (!verticesTag_.label().empty()) {
+    const auto& verticesIn = iEvent.get(vertices_);
+    vertices->reserve(verticesIn.size());
+    for (const auto& e : verticesIn) {
+      vertices->push_back(e);
+    }
+  }
+
   std::vector<float> ptRatio(nLep,-1);
   std::vector<float> ptRel(nLep,-1);
   std::vector<float> jetNDauChargedMVASel(nLep,0);
   std::vector<int>   leptonIndex(nLep,-1);
   std::vector<int>   leptonIndexInJet;
+  std::vector<int>   leptonIndexInSV;
   std::vector<reco::CandidatePtr> jetForLepJetVar(nLep,reco::CandidatePtr());
-  std::unique_ptr<pat::PackedCandidateCollection> selectedPFCandidates( new pat::PackedCandidateCollection());
+  auto selectedPFCandidates = std::make_unique<pat::PackedCandidateCollection>();
+  auto selectedSVs          = std::make_unique<reco::VertexCompositePtrCandidateCollection>();
+  
 
   const auto & pv = (*srcVtx)[0];
 
@@ -120,18 +149,25 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
     for (unsigned int ij = 0; ij<nJet; ij++){
       auto lep = srcLep->ptrAt(il);
       auto jet = srcJet->ptrAt(ij);
+      auto thejet = jet->clone();
       if(matchByCommonSourceCandidatePtr(*lep,*jet)){
-	  auto res = calculatePtRatioRel(lep,jet,pv);
-	  ptRatio[il] = std::get<0>(res);
-	  ptRel[il] = std::get<1>(res);
-	  jetNDauChargedMVASel[il] = std::get<2>(res);
-	  for (auto& cand : std::get<3>(res)){ 
-	    selectedPFCandidates->push_back(*cand);
-	    leptonIndexInJet.push_back(il);
-	  }
-	  jetForLepJetVar[il] = jet;
-	  break; // take leading jet with shared source candidates
-	}
+        auto matches = matchOneToVertices(*thejet, *vertices);
+        for (auto& sv : matches){
+          selectedSVs->push_back( sv );
+          leptonIndexInSV.push_back(il);
+        }
+
+        auto res = calculatePtRatioRel(lep,jet,pv);
+        ptRatio[il] = std::get<0>(res);
+        ptRel[il] = std::get<1>(res);
+        jetNDauChargedMVASel[il] = std::get<2>(res);
+        for (auto& cand : std::get<3>(res)){ 
+          selectedPFCandidates->push_back(*cand);
+          leptonIndexInJet.push_back(il);
+        }
+        jetForLepJetVar[il] = jet;
+        break; // take leading jet with shared source candidates
+      }
     }
   }
   std::unique_ptr<edm::ValueMap<int>> leptonIndexV(new edm::ValueMap<int>());
@@ -139,9 +175,6 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   fillerLeptonIndex.insert(srcLep,leptonIndex.begin(),leptonIndex.end());
   fillerLeptonIndex.fill();
   iEvent.put(std::move(leptonIndexV),"leptonIndex");
-
-
-
 
   std::unique_ptr<edm::ValueMap<float>> ptRatioV(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler fillerRatio(*ptRatioV);
@@ -168,6 +201,7 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   iEvent.put(std::move(jetForLepJetVarV),"jetForLepJetVar");
 
   auto selPF=iEvent.put(std::move(selectedPFCandidates),"selectedPFCandidates");
+  auto selSV=iEvent.put(std::move(selectedSVs),"selectedSVs");
 
   std::unique_ptr<edm::ValueMap<int>> leptonIndexInJetV(new edm::ValueMap<int>());
   edm::ValueMap<int>::Filler fillerLeptonIndexInJet(*leptonIndexInJetV);
@@ -175,8 +209,17 @@ LeptonJetVarProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, con
   fillerLeptonIndexInJet.fill();
   iEvent.put(std::move(leptonIndexInJetV),"leptonIndexInJet");
 
+  std::unique_ptr<edm::ValueMap<int>> leptonIndexInSVV(new edm::ValueMap<int>());
+  edm::ValueMap<int>::Filler fillerLeptonIndexInSV(*leptonIndexInSVV);
+  fillerLeptonIndexInSV.insert(selSV,leptonIndexInSV.begin(),leptonIndexInSV.end());
+  fillerLeptonIndexInSV.fill();
+  iEvent.put(std::move(leptonIndexInSVV),"leptonIndexInSV");
+
 
 }
+
+
+
 
 template <typename T>
 std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>>
@@ -191,7 +234,6 @@ LeptonJetVarProducer<T>::calculatePtRatioRel(edm::Ptr<reco::Candidate> lep, edm:
     pfcandidates.push_back( d );
   }
   
-  std::cout << "Checking muon with pt " << lep->pt() << " has jet " << jet->pt() << " with n daughters "<< jet->daughterPtrVector().size() << std::endl;
   if ((rawp4-lepp4).R()<1e-4) return std::tuple<float,float,float,std::vector<const pat::PackedCandidate*>>(1.0,0.0,0.0,pfcandidates);
 
   auto l1corrFactor = jet->jecFactor("L1FastJet")/jet->jecFactor("Uncorrected");
@@ -231,6 +273,7 @@ LeptonJetVarProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& descri
   desc.add<edm::InputTag>("srcJet")->setComment("jet input collection");
   desc.add<edm::InputTag>("srcLep")->setComment("lepton input collection");
   desc.add<edm::InputTag>("srcVtx")->setComment("primary vertex input collection");
+  desc.add<edm::InputTag>("vertices")->setComment("secondary vertex collection");
   std::string modname;
   if (typeid(T) == typeid(pat::Muon)) modname+="Muon";
   else if (typeid(T) == typeid(pat::Electron)) modname+="Electron";

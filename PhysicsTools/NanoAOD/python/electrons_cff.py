@@ -144,6 +144,8 @@ ptRatioRelForEle = cms.EDProducer("ElectronJetVarProducer",
     srcJet = cms.InputTag("updatedJets"),
     srcLep = cms.InputTag("slimmedElectrons"),
     srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
+    vertices =cms.InputTag("slimmedSecondaryVertices"),
+
 )
 
 seedGainEle = cms.EDProducer("ElectronSeedGainProducer", src = cms.InputTag("slimmedElectrons"))

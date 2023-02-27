@@ -31,6 +31,7 @@ ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
     srcJet = cms.InputTag("updatedJets"),
     srcLep = cms.InputTag("slimmedMuonsUpdated"),
     srcVtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
+    vertices =cms.InputTag("slimmedSecondaryVertices"),
 )
 
 slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
@@ -139,7 +140,41 @@ selectedPFCandidateTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
         leptonIndexInJet = ExtVar(cms.InputTag("ptRatioRelForMu:leptonIndexInJet"),int, doc="Index of lepton for matching"),
     )                                    
 )
-        
+
+selectedVertexTable = cms.EDProducer("VertexTableProducer",
+    pvSrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
+    goodPvCut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.Rho <= 2"), 
+    svSrc = cms.InputTag("ptRatioRelForMu","selectedSVs"),
+    svCut = cms.string(""),  # careful: adding a cut here would make the collection matching inconsistent with the SV table
+    dlenMin = cms.double(0),
+    dlenSigMin = cms.double(3),
+    pvName = cms.string("PVToReject"),
+    svName = cms.string("SelectedSV"),
+    svDoc  = cms.string("secondary vertices from IVF algorithm"),
+    storeCharge = cms.bool(False),
+)
+
+SelectedSVTable  = cms.EDProducer('SimpleCandidateFlatTableProducer',
+    src = cms.InputTag("selectedVertexTable"),
+    singleton = cms.bool(False),
+                                  cut = cms.string(""),
+    name = cms.string("SelectedSV"),
+    extension = cms.bool(True),
+    variables = cms.PSet(P4Vars,
+        x   = Var("position().x()", float, doc = "secondary vertex X position, in cm",precision=10),
+        y   = Var("position().y()", float, doc = "secondary vertex Y position, in cm",precision=10),
+        z   = Var("position().z()", float, doc = "secondary vertex Z position, in cm",precision=14),
+        ndof    = Var("vertexNdof()", float, doc = "number of degrees of freedom",precision=8),
+        chi2    = Var("vertexNormalizedChi2()", float, doc = "reduced chi2, i.e. chi/ndof",precision=8),
+        ntracks = Var("numberOfDaughters()", "uint8", doc = "number of tracks"),
+    ),
+    externalVariables = cms.PSet(
+        leptonIndexInSV = ExtVar(cms.InputTag("ptRatioRelForMu:leptonIndexInSV"),int, doc="Index of lepton for matching"),
+    )                                    
+    
+)
+
+
 
 muonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag("linkedObjects","muons"),
@@ -246,5 +281,5 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonSequence = cms.Sequence(slimmedMuonsUpdated+isoForMu + ptRatioRelForMu + slimmedMuonsWithUserData + finalMuons + finalLooseMuons )
 muonMC = cms.Sequence(muonsMCMatchForTable + muonMCTable)
-muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable + selectedPFCandidateTable)
+muonTables = cms.Sequence(muonFSRphotons + muonFSRassociation + muonMVATTH + muonMVALowPt + muonTable + fsrTable + selectedPFCandidateTable + selectedVertexTable+SelectedSVTable )
 
