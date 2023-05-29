@@ -1,0 +1,5 @@
+<lcgdict>
+<class name="pat::LeptonTagInfo<pat::Muon>"/>
+<class name="pat::LeptonTagInfoCollection<pat::Muon>"/>
+<class name="edm::Wrapper<pat::LeptonTagInfoCollection<pat::Muon>>" persistent="false"/>
+</lcgdict>

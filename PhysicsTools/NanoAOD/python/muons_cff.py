@@ -86,6 +86,7 @@ finalLooseMuons = cms.EDFilter("PATMuonRefSelector", # for isotrack cleaning
     cut = cms.string("pt > 3 && track.isNonnull && isLooseMuon")
 )
 
+                 
 muonMVATTH= cms.EDProducer("MuonBaseMVAValueMapProducer",
     src = cms.InputTag("linkedObjects","muons"),
     weightFile =  cms.FileInPath("PhysicsTools/NanoAOD/data/mu_BDTG_2017.weights.xml"),
@@ -117,6 +118,49 @@ muonMVALowPt = muonMVATTH.clone(
 run2_muon_2016.toModify(
     muonMVATTH,
     weightFile = "PhysicsTools/NanoAOD/data/mu_BDTG_2016.weights.xml",
+)
+
+
+pnetMuonVariables = cms.EDProducer("MuonInfoCollectionProducer",
+                                   src = cms.InputTag("linkedObjects","muons"),
+                                   secondary_vertices=cms.InputTag("slimmedSecondaryVertices"),
+                                   pvSrc = cms.InputTag("offlineSlimmedPrimaryVertices"),
+                                   leptonVars = cms.PSet(
+                                       MuonSelected_LepGood_pt = cms.string("pt"),
+                                       MuonSelected_LepGood_eta = cms.string("eta"),
+                                       MuonSelected_LepGood_jetNDauChargedMVASel = cms.string("?userCand('jetForLepJetVar').isNonnull()?userFloat('jetNDauChargedMVASel'):0"),
+                                       MuonSelected_LepGood_miniRelIsoCharged = cms.string("userFloat('miniIsoChg')/pt"),
+                                       MuonSelected_LepGood_miniRelIsoNeutral = cms.string("(userFloat('miniIsoAll')-userFloat('miniIsoChg'))/pt"),
+                                       MuonSelected_LepGood_jetPtRelv2 = cms.string("?userCand('jetForLepJetVar').isNonnull()?userFloat('ptRel'):0"),
+                                       MuonSelected_LepGood_jetDF = cms.string("?userCand('jetForLepJetVar').isNonnull()?max(userCand('jetForLepJetVar').bDiscriminator('pfDeepFlavourJetTags:probbb')+userCand('jetForLepJetVar').bDiscriminator('pfDeepFlavourJetTags:probb')+userCand('jetForLepJetVar').bDiscriminator('pfDeepFlavourJetTags:problepb'),0.0):0.0"),
+                                       MuonSelected_LepGood_jetPtRatio = cms.string("?userCand('jetForLepJetVar').isNonnull()?min(userFloat('ptRatio'),1.5):1.0/(1.0+(pfIsolationR04().sumChargedHadronPt + max(pfIsolationR04().sumNeutralHadronEt + pfIsolationR04().sumPhotonEt - pfIsolationR04().sumPUPt/2,0.0))/pt)"),
+                                       MuonSelected_dxy = cms.string("log(abs(dB('PV2D')))"),
+                                       MuonSelected_sip3d = cms.string("abs(dB('PV3D')/edB('PV3D'))"),
+                                       MuonSelected_dz = cms.string("log(abs(dB('PVDZ')))"),
+                                       MuonSelected_LepGood_dz = cms.string("log(abs(dB('PVDZ')))"),
+                                       MuonSelected_segmentComp = cms.string("segmentCompatibility"),
+
+                                   ),
+                                   pfVars = cms.PSet(
+                                       PF_pt=cms.string("pt"),
+                                       PF_charge=cms.string("charge"),
+                                       PF_isElectron=cms.string("?abs(pdgId)==11?1:0"),
+                                       PF_isMuon=cms.string("?abs(pdgId)==13?1:0"),
+                                       PF_isNeutralHadron=cms.string("?abs(pdgId)==130?1:0"),
+                                       PF_isPhoton=cms.string("?abs(pdgId)==22?1:0"),
+                                       PF_isChargedHadron=cms.string("?abs(pdgId)==211?1:0"),
+                                       pf_mask=cms.string("1"),
+                                   ),
+                                   svVars = cms.PSet(
+                                       MuonSV_eta=cms.string("eta"),
+                                       MuonSV_phi=cms.string("phi"),
+                                       MuonSV_pt=cms.string("pt"),
+                                       #MuonSV_dlenSig=cms.string("dlenSig"),
+                                       #MuonSV_dxy=cms.string("dxy"),
+                                       MuonSV_ndof=cms.string("vertexNdof"),
+                                       MuonSV_chi2=cms.string("vertexChi2"),
+                                       MuonSV_mask=cms.string("1"),
+                                   ),
 )
 
 muonTable = simpleCandidateFlatTableProducer.clone(
@@ -176,10 +220,19 @@ muonTable = simpleCandidateFlatTableProducer.clone(
     externalVariables = cms.PSet(
         mvaTTH = ExtVar(cms.InputTag("muonMVATTH"),float, doc="TTH MVA lepton ID score",precision=14),
         mvaLowPt = ExtVar(cms.InputTag("muonMVALowPt"),float, doc="Low pt muon ID score",precision=14),
+        pnScore = ExtVar(cms.InputTag("muonPN:pnScore"),float, doc="Score of PN muon id",precision=14),
         fsrPhotonIdx = ExtVar(cms.InputTag("leptonFSRphotons:muFsrIndex"),int, doc="Index of the lowest-dR/ET2 among associated FSR photons"),
     ),
 )
 
+muonPN = cms.EDProducer('PNETMuonProducer',
+                        src = cms.InputTag("pnetMuonVariables"),
+                        srcLeps = cms.InputTag("linkedObjects","muons"),
+                        model_path=cms.FileInPath('PhysicsTools/PatAlgos/data/model.onnx'),
+                        preprocess_json=cms.string('PhysicsTools/PatAlgos/data/preprocess.json'),
+                        name=cms.string("PN_lepton"),
+                        debugMode=cms.untracked.bool(True),
+)
 
 (run2_nanoAOD_106Xv2 | run3_nanoAOD_122).toModify(muonTable.variables,mvaMuID=None).toModify(
      muonTable.variables, mvaMuID = Var("userFloat('mvaIDMuon')", float, doc="MVA-based ID score",precision=6))
@@ -214,7 +267,7 @@ muonMCTable = cms.EDProducer("CandMCMatchTableProducer",
 
 muonTask = cms.Task(slimmedMuonsUpdated,isoForMu,ptRatioRelForMu,slimmedMuonsWithUserData,finalMuons,finalLooseMuons )
 muonMCTask = cms.Task(muonsMCMatchForTable,muonMCTable)
-muonTablesTask = cms.Task(muonMVATTH,muonMVALowPt,muonTable,muonMVAID)
+muonTablesTask = cms.Task(muonMVATTH,muonMVALowPt,muonMVAID,pnetMuonVariables,muonPN,muonTable) 
 
 
 
