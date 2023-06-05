@@ -19,6 +19,7 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "PhysicsTools/NanoAOD/interface/MatchingUtils.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
+#include "DataFormats/Math/interface/deltaR.h"
 
 #include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
 #include "RecoVertex/VertexTools/interface/VertexDistanceXY.h"
@@ -29,13 +30,14 @@
 namespace pat {
   template <typename T> LeptonTagInfoCollectionProducer<T>::LeptonTagInfoCollectionProducer(const edm::ParameterSet &iConfig) : 
     src_token_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
+    pf_token_(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfCandidates"))),
     sv_token_(consumes<reco::VertexCompositePtrCandidateCollection>(iConfig.getParameter<edm::InputTag>("secondary_vertices"))),
     pv_token_(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("pvSrc"))),
     lepton_varsPSet_(iConfig.getParameter<edm::ParameterSet>("leptonVars")),
+    lepton_varsExtPSet_(iConfig.getParameter<edm::ParameterSet>("leptonVarsExt")),
     pf_varsPSet_(iConfig.getParameter<edm::ParameterSet>("pfVars")),
     sv_varsPSet_(iConfig.getParameter<edm::ParameterSet>("svVars"))
   {
-    std::cout << "Check1" << std::endl;
     produces<LeptonTagInfoCollection<T>>();
     parse_vars_into(lepton_varsPSet_, lepton_vars_);
     parse_vars_into(pf_varsPSet_    , pf_vars_);
@@ -50,6 +52,7 @@ namespace pat {
     auto src = iEvent.getHandle(src_token_);
     iEvent.getByToken(sv_token_, svs_);
     iEvent.getByToken(pv_token_, pvs_);
+    iEvent.getByToken(pf_token_, pfs_);
 
     auto output_info = std::make_unique<LeptonTagInfoCollection<T>>();
     
@@ -58,11 +61,8 @@ namespace pat {
       const auto &lep = (*src)[ilep];
       edm::RefToBase<T> lep_ref(src, ilep);
       btagbtvdeep::DeepBoostedJetFeatures features;
-      std::cout << "Filling leptons" << std::endl;
       fill_lepton_features( lep, features );
-      std::cout << "Filling pf" << std::endl;
       fill_pf_features( lep, features );
-      std::cout << "Filling svs" << std::endl;
       fill_sv_features( lep, features );
 
 
@@ -80,7 +80,6 @@ namespace pat {
     
     for (const std::string &vname : varsPSet.getParameterNamesForType<std::string>()) {
       const std::string &func = varsPSet.getParameter<std::string>(vname);
-      std::cout << "Parsing var " << vname << func << std::endl;
       vars.push_back(std::make_unique<varWithName<T2>>(vname, StringObjectFunction<T2, true>(func)));
     }
   }
@@ -97,33 +96,34 @@ namespace pat {
 
   template <typename T>
   void LeptonTagInfoCollectionProducer<T>::fill_pf_features(const T& lep, btagbtvdeep::DeepBoostedJetFeatures& features){
-    auto jet = dynamic_cast<const pat::Jet*>(&(*lep.userCand("jetForLepJetVar"))); 
 
-    std::vector<edm::Ptr<reco::Candidate> > daughters;
-    if (jet)
-      daughters=jet->daughterPtrVector();
+    pat::PackedCandidateCollection pfcands;
+    for (size_t ipf =0; ipf < pfs_->size(); ++ipf){
+      if (deltaR(pfs_->at(ipf), lep) < 0.4) pfcands.push_back(pfs_->at(ipf));
+    }
 
 
     for (auto& var : pf_vars_){
-      std::cout << "Fillin var " << var->first << " for " << daughters.size() << std::endl;
+      std::cout << "Fillin var " << var->first << " for " << pfcands.size() << std::endl;
       features.add(var->first);
-      features.reserve(var->first,daughters.size());
-      for(const auto _d : daughters) {
-	const auto d = dynamic_cast<const pat::PackedCandidate*>(_d.get());
-	features.fill(var->first, var->second(*d));
+      features.reserve(var->first,pfcands.size());
+      for(const auto _d : pfcands) {
+	features.fill(var->first, var->second(_d));
       }
     }
 
     // afaik these need to be hardcoded because I cannot put userFloats to pat::packedCandidates
     features.add("PF_phi_rel");
-    features.reserve("PF_phi_rel",daughters.size());
+    features.reserve("PF_phi_rel",pfcands.size());
     features.add("PF_eta_rel");
-    features.reserve("PF_eta_rel",daughters.size());
+    features.reserve("PF_eta_rel",pfcands.size());
+    features.add("PF_dR_lep");
+    features.reserve("PF_dR_lep",pfcands.size());
 
-    for(const auto _d : daughters) {
-      const auto d = dynamic_cast<const pat::PackedCandidate*>(_d.get());
-      features.fill("PF_phi_rel", deltaPhi(lep.phi(), d->phi()));
-      features.fill("PF_eta_rel", lep.eta()-d->eta());
+    for(const auto _d : pfcands) {
+      features.fill("PF_phi_rel", deltaPhi(lep.phi(), _d.phi()));
+      features.fill("PF_eta_rel", lep.eta()-_d.eta());
+      features.fill("PF_dR_lep", deltaR(lep,_d));
     }
 
   }
@@ -131,25 +131,20 @@ namespace pat {
   template <typename T>
   void LeptonTagInfoCollectionProducer<T>::fill_sv_features(const T& lep, btagbtvdeep::DeepBoostedJetFeatures& features){
 
-    auto jet = dynamic_cast<const pat::Jet*>(&(*lep.userCand("jetForLepJetVar"))); 
-    std::vector<size_t> jetSVs;
 
-    if (jet){
-      for (size_t isv =0; isv < svs_->size(); ++isv){
-	if (matchByCommonSourceCandidatePtr(*jet, svs_->at(isv))){
-	  jetSVs.push_back(isv);
-	  break;
-	}
+    reco::VertexCompositePtrCandidateCollection  selectedSVs;
+    for (size_t isv =0; isv < svs_->size(); ++isv){
+      if (deltaR(lep,svs_->at(isv)) < 0.4){
+	selectedSVs.push_back(svs_->at(isv));
       }
     }
 
     for (auto& var : sv_vars_){
-      std::cout << "Filling " << var->first << "for " << jetSVs.size() << std::endl;
-      
+      std::cout << "Filling " << var->first << "for " << selectedSVs.size() << std::endl;
       features.add(var->first);
-      features.reserve(var->first, jetSVs.size());
-      for (auto& isv : jetSVs)
-	features.fill(var->first, var->second(svs_->at(isv)));
+      features.reserve(var->first, selectedSVs.size());
+      for (auto& sv : selectedSVs)
+	features.fill(var->first, var->second(sv));
     }
 
 
@@ -158,18 +153,28 @@ namespace pat {
     VertexDistance3D vdist;
     VertexDistanceXY vdistXY;
 
-    features.add("MuonSV_dlenSig");
-    features.reserve("MuonSV_dlenSig", jetSVs.size());
-    features.add("MuonSV_dxy");
-    features.reserve("MuonSV_dxy", jetSVs.size());
+    features.add("SV_dlenSig");
+    features.reserve("SV_dlenSig", selectedSVs.size());
+    features.add("SV_dxy");
+    features.reserve("SV_dxy", selectedSVs.size());
+    features.add("SV_dR_lep");
+    features.reserve("SV_dR_lep",selectedSVs.size());
+    features.add("SV_pt_rel");
+    features.reserve("SV_pt_rel",selectedSVs.size());
+    features.add("SV_cospAngle");
+    features.reserve("SV_cospAngle",selectedSVs.size());
 
 
-    for (auto& isv : jetSVs){
-      auto sv = svs_->at(isv);
+    for (auto& sv : selectedSVs){
       Measurement1D dl = vdist.distance(PV0, VertexState(RecoVertex::convertPos(sv.position()), RecoVertex::convertError(sv.error())));
-      features.fill("MuonSV_dlenSig",dl.significance());
+      features.fill("SV_dlenSig",dl.significance());
       Measurement1D d2d = vdistXY.distance(PV0, VertexState(RecoVertex::convertPos(sv.position()), RecoVertex::convertError(sv.error())));
-      features.fill("MuonSV_dxy",d2d.value());
+      features.fill("SV_dxy",d2d.value());
+      features.fill("SV_dR_lep",deltaR(sv,lep));
+      features.fill("SV_pt_rel",sv.pt()/lep.pt());
+      double dx = (PV0.x() - sv.vx()), dy = (PV0.y() - sv.vy()), dz = (PV0.z() - sv.vz());
+      double pdotv = (dx * sv.px() + dy * sv.py() + dz * sv.pz()) / sv.p() / sqrt(dx * dx + dy * dy + dz * dz);
+      features.fill("SV_cospAngle",pdotv);
     }
 
     

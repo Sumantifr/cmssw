@@ -82,11 +82,13 @@ edm::RefToBase<T> lep_ref_;
     void fill_sv_features(const T&, btagbtvdeep::DeepBoostedJetFeatures &);
 
     edm::EDGetTokenT<edm::View<T>> src_token_;
+    edm::EDGetTokenT<pat::PackedCandidateCollection> pf_token_;
     edm::EDGetTokenT<reco::VertexCompositePtrCandidateCollection> sv_token_;
     edm::EDGetTokenT<std::vector<reco::Vertex>> pv_token_;
 
 
     edm::ParameterSet lepton_varsPSet_;
+    edm::ParameterSet lepton_varsExtPSet_;
     edm::ParameterSet pf_varsPSet_;
     edm::ParameterSet sv_varsPSet_;
 
@@ -95,6 +97,7 @@ edm::RefToBase<T> lep_ref_;
     std::vector<std::unique_ptr<varWithName<pat::PackedCandidate>>> pf_vars_;
     std::vector<std::unique_ptr<varWithName<reco::VertexCompositePtrCandidate>>> sv_vars_;
     edm::Handle<reco::VertexCompositePtrCandidateCollection> svs_;
+    edm::Handle<pat::PackedCandidateCollection> pfs_;
     edm::Handle<std::vector<reco::Vertex>> pvs_;
 
   };
