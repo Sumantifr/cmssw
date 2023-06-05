@@ -42,6 +42,7 @@ namespace pat {
     parse_vars_into(lepton_varsPSet_, lepton_vars_);
     parse_vars_into(pf_varsPSet_    , pf_vars_);
     parse_vars_into(sv_varsPSet_    , sv_vars_);
+    parse_extvars_into(lepton_varsExtPSet_    , extLepton_vars_);
     
   }
   
@@ -62,6 +63,7 @@ namespace pat {
       edm::RefToBase<T> lep_ref(src, ilep);
       btagbtvdeep::DeepBoostedJetFeatures features;
       fill_lepton_features( lep, features );
+      fill_lepton_extfeatures( lep_ref, features, iEvent );
       fill_pf_features( lep, features );
       fill_sv_features( lep, features );
 
@@ -83,6 +85,16 @@ namespace pat {
       vars.push_back(std::make_unique<varWithName<T2>>(vname, StringObjectFunction<T2, true>(func)));
     }
   }
+
+  template <typename T>
+  template <typename T2>
+  void LeptonTagInfoCollectionProducer<T>::parse_extvars_into(const edm::ParameterSet &varsPSet, std::vector<std::unique_ptr<extVarWithName<T2>>>& vars)
+  {
+    
+    for (const std::string &vname : varsPSet.getParameterNamesForType<edm::InputTag>()) {
+      vars.push_back(std::make_unique<extVarWithName<float>>(vname, consumes<edm::ValueMap<float>>(varsPSet.getParameter<edm::InputTag>(vname))));
+    }
+  }
     
   template <typename T>
   void LeptonTagInfoCollectionProducer<T>::fill_lepton_features(const T& lep, btagbtvdeep::DeepBoostedJetFeatures& features){
@@ -91,6 +103,19 @@ namespace pat {
       features.add(var->first);
       features.reserve(var->first,1);
       features.fill(var->first, var->second(lep));
+    }
+  }
+
+  template <typename T>
+  void LeptonTagInfoCollectionProducer<T>::fill_lepton_extfeatures(const edm::RefToBase<T>& lep, btagbtvdeep::DeepBoostedJetFeatures& features, edm::Event &iEvent){
+    for (auto& var : extLepton_vars_){
+      edm::Handle<edm::ValueMap<float>> vmap;
+      iEvent.getByToken(var->second, vmap);
+
+      std::cout << "Fillin var " << var->first << std::endl;
+      features.add(var->first);
+      features.reserve(var->first,1);
+      features.fill(var->first, (*vmap)[lep]);
     }
   }
 

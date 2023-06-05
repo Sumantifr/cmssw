@@ -32,7 +32,7 @@ ptRatioRelForMu = cms.EDProducer("MuonJetVarProducer",
 
 muonMVAID = cms.EDProducer("EvaluateMuonMVAID",
     src = cms.InputTag("slimmedMuonsUpdated"),
-    weightFile =  cms.FileInPath("RecoMuon/MuonIdentification/data/mvaID.onnx"),
+    weightFile =  cms.FileInPath("PhysicsTools/PatAlgos/data/rf67_zipmapNone.onnx"),
     isClassifier = cms.bool(False),
     backend = cms.string('ONNX'),
     name = cms.string("muonMVAID"),
@@ -65,15 +65,13 @@ slimmedMuonsWithUserData = cms.EDProducer("PATMuonUserDataEmbedder",
         ptRel = cms.InputTag("ptRatioRelForMu:ptRel"),
         jetNDauChargedMVASel = cms.InputTag("ptRatioRelForMu:jetNDauChargedMVASel"),
         mvaIDMuon_wpMedium = cms.InputTag("muonMVAID:wpMedium"),
-        mvaIDMuon_wpTight = cms.InputTag("muonMVAID:wpTight")
+        mvaIDMuon_wpTight = cms.InputTag("muonMVAID:wpTight"),
+         mvaIDMuon = cms.InputTag("muonMVAID:probGOOD"),
      ),
      userCands = cms.PSet(
         jetForLepJetVar = cms.InputTag("ptRatioRelForMu:jetForLepJetVar") # warning: Ptr is null if no match is found
      ),
 )
-
-(run2_nanoAOD_106Xv2 | run3_nanoAOD_122 ).toModify(slimmedMuonsWithUserData.userFloats,
-                                           mvaIDMuon = cms.InputTag("muonMVAID:probGOOD"))
 
 
 finalMuons = cms.EDFilter("PATMuonRefSelector",
@@ -144,13 +142,13 @@ pnetMuonVariables = cms.EDProducer("MuonInfoCollectionProducer",
                                        MuonSelected_validFraction = cms.string("?innerTrack.isNonnull?innerTrack().validFraction:-99"),
                                        MuonSelected_local_chi2 = cms.string("combinedQuality().chi2LocalPosition"),
                                        MuonSelected_kink = cms.string("combinedQuality().trkKink"),
-                                       MuonSelected_segmentComp = cms.string("segmentCompatibility"),
                                        MuonSelected_n_MatchedStations = cms.string("numberOfMatchedStations()"),
                                        MuonSelected_Valid_pixel = cms.string("?innerTrack.isNonnull()?innerTrack().hitPattern().numberOfValidPixelHits():-99"),
                                        MuonSelected_tracker_layers = cms.string("?innerTrack.isNonnull()?innerTrack().hitPattern().trackerLayersWithMeasurement():-99"),
+                                       MuonSelected_mvaId=cms.string("userFloat('mvaIDMuon')"),
                                    ),
                                    leptonVarsExt = cms.PSet(
-                                       MuonSelected_mvaId=cms.InputTag("muonMVATTH")
+                                       MuonSelected_mvaTTH=cms.InputTag("muonMVATTH"),
                                    ),
                                    pfVars = cms.PSet(
                                        PF_pt=cms.string("pt"),

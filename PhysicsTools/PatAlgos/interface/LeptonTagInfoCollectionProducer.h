@@ -68,6 +68,9 @@ edm::RefToBase<T> lep_ref_;
   
   template<typename T2> 
   using varWithName = std::pair<std::string, StringObjectFunction<T2,true>> ;
+
+  template<typename T2> 
+  using extVarWithName = std::pair<std::string, edm::EDGetTokenT<edm::ValueMap<T2>>> ;
   
   template <typename T>  class LeptonTagInfoCollectionProducer : public edm::stream::EDProducer<> {
   public:
@@ -77,7 +80,9 @@ edm::RefToBase<T> lep_ref_;
   private:
     void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
     template <typename T2> void parse_vars_into(const edm::ParameterSet &, std::vector<std::unique_ptr<varWithName<T2>>>&);
+    template <typename T2> void parse_extvars_into(const edm::ParameterSet &, std::vector<std::unique_ptr<extVarWithName<T2>>>&);
     void fill_lepton_features(const T&, btagbtvdeep::DeepBoostedJetFeatures &);
+    void fill_lepton_extfeatures(const edm::RefToBase<T>&, btagbtvdeep::DeepBoostedJetFeatures &, edm::Event &);
     void fill_pf_features(const T&, btagbtvdeep::DeepBoostedJetFeatures &);
     void fill_sv_features(const T&, btagbtvdeep::DeepBoostedJetFeatures &);
 
@@ -99,6 +104,7 @@ edm::RefToBase<T> lep_ref_;
     edm::Handle<reco::VertexCompositePtrCandidateCollection> svs_;
     edm::Handle<pat::PackedCandidateCollection> pfs_;
     edm::Handle<std::vector<reco::Vertex>> pvs_;
+    std::vector<std::unique_ptr<extVarWithName<float>>> extLepton_vars_;
 
   };
   
