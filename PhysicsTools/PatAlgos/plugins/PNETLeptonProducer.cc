@@ -64,7 +64,6 @@ void PNETLeptonProducer<T>::produce(edm::Event& iEvent, const edm::EventSetup& i
     mvaScores.push_back(outputs.at(0));
   }
 
-  std::cout << "We have computed mva scores for " << mvaScores.size() << " leptons " << std::endl;
 
   // this should be a loop for multiclass
   std::unique_ptr<edm::ValueMap<float>> pnScore(new edm::ValueMap<float>());

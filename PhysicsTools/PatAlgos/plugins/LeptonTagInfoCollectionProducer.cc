@@ -49,7 +49,6 @@ namespace pat {
   template <typename T>
   void LeptonTagInfoCollectionProducer<T>::produce(edm::Event &iEvent, const edm::EventSetup &iSetup)
   {
-    std::cout << "Check2" << std::endl;
     auto src = iEvent.getHandle(src_token_);
     iEvent.getByToken(sv_token_, svs_);
     iEvent.getByToken(pv_token_, pvs_);
@@ -99,7 +98,6 @@ namespace pat {
   template <typename T>
   void LeptonTagInfoCollectionProducer<T>::fill_lepton_features(const T& lep, btagbtvdeep::DeepBoostedJetFeatures& features){
     for (auto& var : lepton_vars_){
-      std::cout << "Fillin var " << var->first << " " << var->second(lep) << std::endl;
       features.add(var->first);
       features.reserve(var->first,1);
       features.fill(var->first, var->second(lep));
@@ -112,7 +110,6 @@ namespace pat {
       edm::Handle<edm::ValueMap<float>> vmap;
       iEvent.getByToken(var->second, vmap);
 
-      std::cout << "Fillin var " << var->first << std::endl;
       features.add(var->first);
       features.reserve(var->first,1);
       features.fill(var->first, (*vmap)[lep]);
@@ -129,7 +126,6 @@ namespace pat {
 
 
     for (auto& var : pf_vars_){
-      std::cout << "Fillin var " << var->first << " for " << pfcands.size() << std::endl;
       features.add(var->first);
       features.reserve(var->first,pfcands.size());
       for(const auto _d : pfcands) {
@@ -165,7 +161,6 @@ namespace pat {
     }
 
     for (auto& var : sv_vars_){
-      std::cout << "Filling " << var->first << "for " << selectedSVs.size() << std::endl;
       features.add(var->first);
       features.reserve(var->first, selectedSVs.size());
       for (auto& sv : selectedSVs)
